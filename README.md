@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeSFi v2026
+
+Personal finance management application — TypeScript rewrite of the original PHP/MariaDB app.
+The existing MariaDB database is kept unchanged so the PHP app can continue running in parallel.
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| ORM | Prisma 7 with `@prisma/adapter-mariadb` |
+| Auth | Auth.js v5 (next-auth@beta) — Credentials + MD5 |
+| UI | shadcn/ui on `@base-ui/react` + Tailwind v4 |
+| Database | MariaDB (existing GeSFi schema, read-only migration policy) |
 
 ## Getting Started
 
-First, run the development server:
+Copy `.env.example` to `.env.local` and fill in the database credentials:
+
+```
+DB_HOST=
+DB_PORT=3306
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+DATABASE_URL=mysql://user:password@host:3306/dbname
+NEXTAUTH_SECRET=
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Key architectural notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Dark theme** is forced via the `dark` class on `<html>` in `src/app/layout.tsx`.
+- **Prisma v7** requires a driver adapter at runtime (`src/lib/prisma.ts`) and `prisma.config.ts` for CLI operations. There is no `url` field in `schema.prisma`.
+- **Next.js 16** uses `proxy.ts` (not `middleware.ts`) with a named `proxy` export.
+- **Auth split**: `src/auth.config.ts` is Edge-safe (used by the proxy); `src/auth.ts` is Node.js-only (used by server components).
+- **Prisma raw queries**: `TINYINT(1)` columns come back as strings from `$queryRaw`. Always wrap with `Number()` when comparing. Boolean columns (`marked_as_deleted`, `confirmed`) follow the same pattern.
+- **shadcn/ui** uses `@base-ui/react`, not Radix UI — no `asChild` prop. `buttonVariants` is a client-only function; use inline Tailwind classes in server components.
+- **Server → Client boundary**: Prisma `Decimal` fields must be serialized with `Number()` before passing to Client Components.
 
-## Learn More
+## Record types (`bf_record.record_type`)
 
-To learn more about Next.js, take a look at the following resources:
+| Value | Meaning | Display |
+|---|---|---|
+| 10 | Credit (transfer in) | blue + |
+| 12 | Income | blue + |
+| 22 | Expense | red − |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    (main)/           # Authenticated main app
+      accounts/
+        [accountId]/
+          page.tsx          # Account page with transaction tiles
+          new/              # Add expense/income form
+          transfer/         # Transfer between accounts
+    (admin)/          # Admin area (non-responsive)
+    login/            # Login page
+  auth.config.ts      # Edge-safe auth config
+  auth.ts             # Full auth (Node.js)
+  proxy.ts            # Route guard (replaces middleware.ts)
+  components/
+    layout/           # Sidebar, AccountNav, TransactionTile, etc.
+    ui/               # shadcn/ui components
+  lib/
+    prisma.ts         # Prisma singleton (server-only)
+    accounts.ts       # Cached account fetcher (server-only)
+  generated/
+    prisma/           # Generated Prisma client (do not edit)
+prisma/
+  schema.prisma       # Prisma schema (mysql provider, no url field)
+prisma.config.ts      # Prisma CLI config (provides DATABASE_URL)
+```

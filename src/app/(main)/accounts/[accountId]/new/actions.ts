@@ -16,7 +16,7 @@ export async function createExpense(
   const designation = (formData.get("designation") as string)?.trim();
   const dateStr = formData.get("date") as string;
   const confirmed = formData.get("confirmed") === "on";
-  const isIncome = formData.get("mode") === "income";
+  const recordType = formData.get("mode") === "income" ? 12 : 22;
 
   if (!designation) return "Designation is required.";
   if (!dateStr) return "Date is required.";
@@ -50,7 +50,7 @@ export async function createExpense(
       record_date_month: recordDate.getMonth() + 1,
       record_date_year: recordDate.getFullYear(),
       designation,
-      record_type: isIncome, // true = credit (income), false = debit (expense)
+      record_type: recordType,
       amount,
       charge,
       actor: 0,

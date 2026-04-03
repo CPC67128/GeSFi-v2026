@@ -6,14 +6,15 @@ export type Transaction = {
   record_group_id: string;
   designation: string;
   record_date: Date;
-  record_type: boolean;
+  record_type: number;
   confirmed: boolean;
   total: number;
   lines: TransactionLine[];
 };
 
+// 10 = credit (transfer in), 12 = income, 22 = expense
 export function TransactionTile({ transaction }: { transaction: Transaction }) {
-  const isCredit = transaction.record_type;
+  const isCredit = transaction.record_type === 10 || transaction.record_type === 12;
 
   const formattedDate = new Date(transaction.record_date).toLocaleDateString("fr-FR", {
     day: "2-digit",
@@ -34,7 +35,7 @@ export function TransactionTile({ transaction }: { transaction: Transaction }) {
         <span
           className={
             isCredit
-              ? "text-sm font-semibold shrink-0 text-green-600 dark:text-green-400"
+              ? "text-sm font-semibold shrink-0 text-blue-600 dark:text-blue-400"
               : "text-sm font-semibold shrink-0 text-red-600 dark:text-red-400"
           }
         >

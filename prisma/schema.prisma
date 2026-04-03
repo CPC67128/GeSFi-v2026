@@ -71,7 +71,7 @@ model bf_record {
   record_date_year                 Int      @default(-1) @db.SmallInt
   marked_as_deleted                Boolean  @default(false)
   designation                      String   @db.VarChar(200)
-  record_type                      Boolean  @default(true)
+  record_type                      Int      @default(1) @db.TinyInt
   amount                           Decimal? @default(0.00) @db.Decimal(10, 2)
   amount_invested                  Decimal? @default(0.00) @db.Decimal(10, 2)
   value                            Decimal? @default(0.00) @db.Decimal(10, 2)

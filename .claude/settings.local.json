@@ -28,7 +28,9 @@
       "Bash(curl -s -o /dev/null -w \"GET /api/auth/session: %{http_code}\\\\n\" http://localhost:3000/api/auth/session)",
       "Bash(cmd /c \"taskkill /PID 36772 /F\")",
       "Bash(powershell -Command \"Stop-Process -Id 36772 -Force\")",
-      "Bash(npx shadcn@latest init --defaults)"
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(curl -s -o /dev/null -w \"GET /admin: %{http_code}\\\\n\" http://localhost:3000/admin)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/auth/session)"
     ]
   }
 }

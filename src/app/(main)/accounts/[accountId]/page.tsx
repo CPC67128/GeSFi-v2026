@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { SearchBox } from "@/components/layout/search-box";
 import { TransactionTile } from "@/components/layout/transaction-tile";
 import { Suspense } from "react";
@@ -22,16 +23,30 @@ async function TransactionList({
   userId: string;
   query: string;
 }) {
-  const records = await prisma.bf_record.findMany({
-    where: {
-      account_id: accountId,
-      user_id: userId,
-      marked_as_deleted: false,
-      ...(query ? { designation: { contains: query } } : {}),
-    },
-    orderBy: { record_date: "desc" },
-    take: 200,
-  });
+  // CAST(record_type AS UNSIGNED) bypasses the mariadb driver's TINYINT(1)→boolean coercion
+  type RawRecord = {
+    record_id: string;
+    record_group_id: string;
+    record_date: Date;
+    designation: string;
+    record_type: number;
+    amount: string | null;
+    category_id: string;
+    confirmed: number;
+  };
+
+  const records = await prisma.$queryRaw<RawRecord[]>`
+    SELECT record_id, record_group_id, record_date, designation,
+           CAST(record_type AS UNSIGNED) AS record_type,
+           amount, category_id,
+           CAST(confirmed AS UNSIGNED) AS confirmed
+    FROM bf_record
+    WHERE account_id = ${accountId}
+      AND user_id   = ${userId}
+      AND marked_as_deleted = 0
+      ${query ? Prisma.sql`AND designation LIKE ${`%${query}%`}` : Prisma.empty}
+    ORDER BY record_date DESC
+    LIMIT 200`;
 
   if (records.length === 0) {
     return (
@@ -67,8 +82,8 @@ async function TransactionList({
       record_group_id: first.record_group_id,
       designation: first.designation,
       record_date: first.record_date,
-      record_type: first.record_type,
-      confirmed: first.confirmed,
+      record_type: Number(first.record_type),
+      confirmed: first.confirmed !== 0,
       total,
       lines: recs.map((r) => ({
         category: categoryMap.get(r.category_id) ?? "",
