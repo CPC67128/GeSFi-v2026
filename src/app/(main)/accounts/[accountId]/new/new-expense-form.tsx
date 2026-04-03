@@ -12,8 +12,45 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 type Category = { category_id: string; category: string; type: number; link_type: string; sort_order: number };
 type Mode = "expense" | "income";
 
-// Category type=1 → expense, type=0 → income
 const CATEGORY_TYPE: Record<Mode, number> = { expense: 1, income: 0 };
+
+// Safely evaluate a formula containing only numbers, +, - and spaces
+function parseFormula(input: string): number {
+  const tokens = input.match(/[+-]?\s*\d+(\.\d+)?/g);
+  if (!tokens) return 0;
+  return tokens.reduce((sum, t) => sum + parseFloat(t.replace(/\s/g, "")), 0);
+}
+
+// Compute amounts for all visible categories.
+// A formula ending with "--" means: baseValue - sum(all other amounts).
+function computeAmounts(
+  formulas: Record<string, string>,
+  categoryIds: string[]
+): Record<string, string> {
+  let autoId: string | null = null;
+  let autoBase = 0;
+  let sumOfOthers = 0;
+  const result: Record<string, string> = {};
+
+  for (const id of categoryIds) {
+    const raw = (formulas[id] ?? "").trim();
+    if (raw.endsWith("--")) {
+      autoId = id;
+      autoBase = parseFormula(raw.slice(0, -2));
+    } else {
+      const val = parseFormula(raw);
+      result[id] = val > 0 ? val.toFixed(2) : "";
+      sumOfOthers += val > 0 ? val : 0;
+    }
+  }
+
+  if (autoId !== null) {
+    const val = autoBase - sumOfOthers;
+    result[autoId] = val > 0 ? val.toFixed(2) : "";
+  }
+
+  return result;
+}
 
 type Props = { accountId: string; categories: Category[] };
 
@@ -21,6 +58,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
   const action = createExpense.bind(null, accountId);
   const [error, formAction, pending] = useActionState(action, undefined);
   const [mode, setMode] = useState<Mode>("expense");
+  const [formulas, setFormulas] = useState<Record<string, string>>({});
 
   const today = new Date().toISOString().split("T")[0];
   const visible = categories.filter((c) => c.type === CATEGORY_TYPE[mode]);
@@ -29,12 +67,18 @@ export function NewExpenseForm({ accountId, categories }: Props) {
     (acc[cat.link_type] ??= []).push(cat);
     return acc;
   }, {});
-
   for (const cats of Object.values(grouped)) {
     cats.sort((a, b) => a.sort_order - b.sort_order);
   }
 
+  const visibleIds = visible.map((c) => c.category_id);
+  const amounts = computeAmounts(formulas, visibleIds);
+
   const groupLabel: Record<string, string> = { DUO: "Category Duo", USER: "Category User" };
+
+  function handleFormula(categoryId: string, value: string) {
+    setFormulas((prev) => ({ ...prev, [categoryId]: value }));
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -68,7 +112,6 @@ export function NewExpenseForm({ accountId, categories }: Props) {
         </button>
       </div>
 
-      {/* Hidden field so the action knows the mode */}
       <input type="hidden" name="mode" value={mode} />
 
       {/* Header fields */}
@@ -103,22 +146,32 @@ export function NewExpenseForm({ accountId, categories }: Props) {
               {groupLabel[linkType] ?? linkType}
             </h3>
 
-            <div className="grid grid-cols-[1fr_120px_90px] gap-2 px-1">
+            <div className="grid grid-cols-[1fr_130px_110px_80px] gap-2 px-1">
               <span className="text-xs text-muted-foreground">Category</span>
+              <span className="text-xs text-muted-foreground text-right">Formula</span>
               <span className="text-xs text-muted-foreground text-right">Amount</span>
               <span className="text-xs text-muted-foreground text-right">Charge %</span>
             </div>
 
             {cats.map((cat) => (
-              <div key={cat.category_id} className="grid grid-cols-[1fr_120px_90px] items-center gap-2">
+              <div key={cat.category_id} className="grid grid-cols-[1fr_130px_110px_80px] items-center gap-2">
                 <span className="text-sm truncate">{cat.category}</span>
+                <Input
+                  type="text"
+                  placeholder="0+0  or  100--"
+                  className="text-right font-mono"
+                  value={formulas[cat.category_id] ?? ""}
+                  onChange={(e) => handleFormula(cat.category_id, e.target.value)}
+                />
                 <Input
                   name={`amount_${cat.category_id}`}
                   type="number"
-                  min="0"
                   step="0.01"
+                  readOnly
+                  value={amounts[cat.category_id] ?? ""}
                   placeholder="0.00"
-                  className="text-right"
+                  className="text-right bg-muted cursor-not-allowed"
+                  onChange={() => {}}
                 />
                 <Input
                   name={`charge_${cat.category_id}`}

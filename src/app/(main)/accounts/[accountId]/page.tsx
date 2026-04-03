@@ -6,7 +6,7 @@ import { TransactionTile } from "@/components/layout/transaction-tile";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ArrowLeftRight, Plus } from "lucide-react";
 
 type Props = {
   params: Promise<{ accountId: string }>;
@@ -27,12 +27,10 @@ async function TransactionList({
       account_id: accountId,
       user_id: userId,
       marked_as_deleted: false,
-      ...(query
-        ? { designation: { contains: query } }
-        : {}),
+      ...(query ? { designation: { contains: query } } : {}),
     },
     orderBy: { record_date: "desc" },
-    take: 100,
+    take: 200,
   });
 
   if (records.length === 0) {
@@ -43,18 +41,54 @@ async function TransactionList({
     );
   }
 
-  // Group by year-month key, preserving desc order
-  const groups = new Map<string, typeof records>();
+  // Fetch category names for all category_ids present in these records
+  const categoryIds = [...new Set(records.map((r) => r.category_id).filter(Boolean))];
+  const categories =
+    categoryIds.length > 0
+      ? await prisma.bf_category.findMany({
+          where: { category_id: { in: categoryIds } },
+          select: { category_id: true, category: true },
+        })
+      : [];
+  const categoryMap = new Map(categories.map((c) => [c.category_id, c.category]));
+
+  // Group records by record_group_id, preserving the desc date order of the first occurrence
+  const groupMap = new Map<string, typeof records>();
   for (const record of records) {
-    const date = new Date(record.record_date);
+    if (!groupMap.has(record.record_group_id)) groupMap.set(record.record_group_id, []);
+    groupMap.get(record.record_group_id)!.push(record);
+  }
+
+  // Build Transaction objects (one per group)
+  const transactions = Array.from(groupMap.values()).map((recs) => {
+    const first = recs[0];
+    const total = recs.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+    return {
+      record_group_id: first.record_group_id,
+      designation: first.designation,
+      record_date: first.record_date,
+      record_type: first.record_type,
+      confirmed: first.confirmed,
+      total,
+      lines: recs.map((r) => ({
+        category: categoryMap.get(r.category_id) ?? "",
+        amount: Number(r.amount ?? 0),
+      })),
+    };
+  });
+
+  // Group transactions by year-month, preserving desc order
+  const monthGroups = new Map<string, typeof transactions>();
+  for (const tx of transactions) {
+    const date = new Date(tx.record_date);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(record);
+    if (!monthGroups.has(key)) monthGroups.set(key, []);
+    monthGroups.get(key)!.push(tx);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {Array.from(groups.entries()).map(([key, groupRecords]) => {
+      {Array.from(monthGroups.entries()).map(([key, txs]) => {
         const [year, month] = key.split("-");
         const label = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(
           "fr-FR",
@@ -66,8 +100,8 @@ async function TransactionList({
               {label}
             </h3>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {groupRecords.map((record) => (
-                <TransactionTile key={record.record_id} record={record} />
+              {txs.map((tx) => (
+                <TransactionTile key={tx.record_group_id} transaction={tx} />
               ))}
             </div>
           </section>
@@ -127,6 +161,13 @@ export default async function AccountPage({ params, searchParams }: Props) {
         >
           <Plus size={16} />
           <span className="sr-only">Add transaction</span>
+        </Link>
+        <Link
+          href={`/accounts/${accountId}/transfer`}
+          className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <ArrowLeftRight size={16} />
+          <span className="sr-only">Transfer</span>
         </Link>
         <SearchBox />
       </div>

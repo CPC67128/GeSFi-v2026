@@ -1,54 +1,73 @@
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock } from "lucide-react";
-import type { bf_recordModel } from "@/generated/prisma/models/bf_record";
 
-type Props = {
-  record: bf_recordModel;
+export type TransactionLine = { category: string; amount: number };
+
+export type Transaction = {
+  record_group_id: string;
+  designation: string;
+  record_date: Date;
+  record_type: boolean;
+  confirmed: boolean;
+  total: number;
+  lines: TransactionLine[];
 };
 
-export function TransactionTile({ record }: Props) {
-  const isCredit = record.record_type; // true = credit, false = debit
-  const amount = Number(record.amount ?? 0);
+export function TransactionTile({ transaction }: { transaction: Transaction }) {
+  const isCredit = transaction.record_type;
 
-  const formattedDate = new Date(record.record_date).toLocaleDateString(
-    "fr-FR",
-    { day: "2-digit", month: "short", year: "numeric" }
-  );
+  const formattedDate = new Date(transaction.record_date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
-  const formattedAmount = Math.abs(amount).toLocaleString("fr-FR", {
+  const formattedTotal = transaction.total.toLocaleString("fr-FR", {
     style: "currency",
     currency: "EUR",
   });
 
   return (
-    <div className="flex items-start justify-between rounded-lg border bg-card p-4 gap-4 hover:bg-accent/50 transition-colors">
-      <div className="flex flex-col gap-1 min-w-0">
-        <span className="text-sm font-medium truncate">
-          {record.designation}
-        </span>
-        <span className="text-xs text-muted-foreground">{formattedDate}</span>
-      </div>
-
-      <div className="flex flex-col items-end gap-1 shrink-0">
+    <div className="flex flex-col rounded-lg border bg-card p-4 gap-2 hover:bg-accent/50 transition-colors">
+      {/* Designation + total */}
+      <div className="flex items-start justify-between gap-4">
+        <span className="text-sm font-medium truncate">{transaction.designation}</span>
         <span
           className={
             isCredit
-              ? "text-sm font-semibold text-green-600 dark:text-green-400"
-              : "text-sm font-semibold text-red-600 dark:text-red-400"
+              ? "text-sm font-semibold shrink-0 text-green-600 dark:text-green-400"
+              : "text-sm font-semibold shrink-0 text-red-600 dark:text-red-400"
           }
         >
-          {isCredit ? "+" : "-"}
-          {formattedAmount}
+          {isCredit ? "+" : "−"}
+          {formattedTotal}
         </span>
-        <div className="flex items-center gap-1">
-          {record.confirmed ? (
-            <CheckCircle2 size={13} className="text-green-500" />
-          ) : (
-            <Clock size={13} className="text-muted-foreground" />
-          )}
-          {record.flag_1 > 0 && <Badge variant="outline" className="text-xs py-0">F1</Badge>}
-        </div>
       </div>
+
+      {/* Date + confirmed */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{formattedDate}</span>
+        {transaction.confirmed ? (
+          <CheckCircle2 size={13} className="text-green-500" />
+        ) : (
+          <Clock size={13} className="text-muted-foreground" />
+        )}
+      </div>
+
+      {/* Category lines */}
+      {transaction.lines.some((l) => l.category) && (
+        <div className="flex flex-col gap-0.5 border-t pt-2 mt-1">
+          {transaction.lines
+            .filter((l) => l.category)
+            .map((line, i) => (
+              <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="truncate">{line.category}</span>
+                <span className="shrink-0 tabular-nums ml-2">
+                  {line.amount.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
