@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-pnpm)",
+      "Bash(npx create-next-app@latest gesfi-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-pnpm)",
+      "Bash(npx create-next-app@latest gesfi-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(mv gesfi-temp/* .)",
+      "Bash(mv gesfi-temp/.* .)",
+      "Bash(rm -rf gesfi-temp)",
+      "Bash(npm install:*)",
+      "Bash(npx auth:*)",
+      "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next-auth/package.json'\\).version\\)\")",
+      "Bash(npx tsc:*)",
+      "Bash(ls c:/Private/Repositories/GeSFi-v2026/src/generated/prisma/*.ts)",
+      "Bash(npx prisma:*)",
+      "WebFetch(domain:www.prisma.io)",
+      "Bash(npm search:*)",
+      "Bash(node -e \"const d=require\\('/dev/stdin'\\); console.log\\(JSON.stringify\\({peerDeps: d.peerDependencies, deps: d.dependencies}, null, 2\\)\\)\")",
+      "Bash(node -e \"const c = require\\('./node_modules/@prisma/config'\\); console.log\\(Object.keys\\(c\\)\\)\")",
+      "Bash(npx tsx:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -L -o /dev/null -w \"final status: %{http_code}, redirects: %{num_redirects}\" http://localhost:3000/)",
+      "Bash(taskkill /PID 36772 /F)",
+      "Bash(curl -s -o /dev/null -w \"GET /: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"GET /login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"GET /api/auth/session: %{http_code}\\\\n\" http://localhost:3000/api/auth/session)",
+      "Bash(cmd /c \"taskkill /PID 36772 /F\")",
+      "Bash(powershell -Command \"Stop-Process -Id 36772 -Force\")",
+      "Bash(npx shadcn@latest init --defaults)"
+    ]
+  }
+}

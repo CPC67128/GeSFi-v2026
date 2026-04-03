@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model bf_account {
+  account_id               String    @id @db.VarChar(36)
+  name                     String    @default("") @db.VarChar(200)
+  description              String    @db.VarChar(200)
+  type                     Int
+  owner_user_id            String    @default("") @db.VarChar(40)
+  opening_balance          Decimal   @default(0.00) @db.Decimal(10, 2)
+  expected_minimum_balance Decimal   @default(0.00) @db.Decimal(10, 2)
+  creation_date            DateTime  @db.Date
+  availability_date        DateTime? @db.Date
+  closing_date             DateTime? @db.Date
+  minimum_check_period     Int       @default(30)
+  record_confirmation      Int       @db.TinyInt
+  marked_as_closed         Boolean   @default(false)
+  not_displayed_in_menu    Boolean   @default(false)
+  no_color_in_dashboard    Boolean   @default(false)
+  no_yield_display         Boolean   @default(false)
+  generate_income          Boolean   @default(false)
+  CALC_balance             Decimal   @default(0.00) @db.Decimal(10, 2)
+  CALC_balance_confirmed   Decimal   @default(0.00) @db.Decimal(10, 2)
+
+  @@index([owner_user_id], map: "owner_user_id")
+  @@index([type], map: "type")
+}
+
+model bf_account_user_preference {
+  user_id    String @db.VarChar(36)
+  account_id String @db.VarChar(36)
+  sort_order Int
+
+  @@id([user_id, account_id])
+}
+
+model bf_category {
+  category_id        String   @id @default("UUID()") @db.VarChar(36)
+  link_type          String   @db.VarChar(20)
+  link_id            String   @db.VarChar(36)
+  type               Int      @default(0)
+  category           String   @db.VarChar(100)
+  active_from        DateTime @db.Date
+  sort_order         Int
+  marked_as_inactive Int?     @db.TinyInt
+
+  @@index([link_id], map: "link_id")
+  @@index([link_type], map: "link_type")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model bf_ccb {
+  ccb_id           Int      @id @default(autoincrement())
+  database_version Int
+  upgrade_date     DateTime @db.DateTime(0)
+}
+
+model bf_record {
+  account_id                       String   @default("") @db.VarChar(36)
+  record_id                        String   @id @default("") @db.VarChar(36)
+  record_group_id                  String   @default("") @db.VarChar(36)
+  user_id                          String   @default("") @db.VarChar(36)
+  record_date                      DateTime @db.Date
+  record_date_month                Int      @default(-1) @db.TinyInt
+  record_date_year                 Int      @default(-1) @db.SmallInt
+  marked_as_deleted                Boolean  @default(false)
+  designation                      String   @db.VarChar(200)
+  record_type                      Boolean  @default(true)
+  amount                           Decimal? @default(0.00) @db.Decimal(10, 2)
+  amount_invested                  Decimal? @default(0.00) @db.Decimal(10, 2)
+  value                            Decimal? @default(0.00) @db.Decimal(10, 2)
+  withdrawal                       Decimal? @default(0.00) @db.Decimal(10, 2)
+  income                           Decimal? @db.Decimal(10, 2)
+  charge                           Int      @db.TinyInt
+  category_id                      String   @db.VarChar(50)
+  actor                            Int      @db.TinyInt
+  confirmed                        Boolean  @default(false)
+  creation_date                    DateTime @default(now()) @db.Timestamp(0)
+  flag_1                           Int      @default(0) @db.TinyInt
+  flag_2                           Int      @default(0) @db.TinyInt
+  flag_3                           Int      @default(0) @db.TinyInt
+  CALC_days_since_creation         Int?
+  CALC_amount_accumulated          Decimal? @db.Decimal(10, 2)
+  CALC_amount_invested_accumulated Decimal? @db.Decimal(10, 2)
+  CALC_gain                        Decimal? @db.Decimal(10, 2)
+  CALC_yield                       Decimal? @db.Decimal(10, 2)
+  CALC_yield_average               Decimal? @db.Decimal(10, 2)
+  CALC_withdrawal_sum              Decimal? @default(0.00) @db.Decimal(10, 2)
+  CALC_income_sum                  Decimal? @db.Decimal(10, 2)
+
+  @@index([account_id], map: "account_id")
+  @@index([actor], map: "actor")
+  @@index([category_id], map: "category_id")
+  @@index([confirmed], map: "confirmed")
+  @@index([record_date_month], map: "creation_date_month")
+  @@index([record_date_year], map: "creation_date_year")
+  @@index([marked_as_deleted], map: "marked_as_deleted")
+  @@index([record_date], map: "record_date")
+  @@index([record_date_month], map: "record_date_month")
+  @@index([record_date_year], map: "record_date_year")
+  @@index([record_group_id], map: "record_group_id")
+  @@index([record_type], map: "record_type")
+  @@index([user_id], map: "user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model bf_user {
+  user_id  String  @id @db.VarChar(40)
+  name     String? @db.VarChar(200)
+  email    String  @db.VarChar(200)
+  password String  @db.VarChar(100)
+  role     Int
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model bf_user_connection {
+  user_id              String   @db.VarChar(40)
+  connection_date_time DateTime @db.DateTime(0)
+  ip_address           String   @db.VarChar(100)
+  browser              String   @db.VarChar(200)
+
+  @@id([user_id, connection_date_time, ip_address, browser])
+}
