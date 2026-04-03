@@ -5,6 +5,8 @@ import { SearchBox } from "@/components/layout/search-box";
 import { TransactionTile } from "@/components/layout/transaction-tile";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 type Props = {
   params: Promise<{ accountId: string }>;
@@ -117,8 +119,17 @@ export default async function AccountPage({ params, searchParams }: Props) {
         </div>
       </div>
 
-      {/* Search */}
-      <SearchBox />
+      {/* Search + Add */}
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/accounts/${accountId}/new`}
+          className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <Plus size={16} />
+          <span className="sr-only">Add transaction</span>
+        </Link>
+        <SearchBox />
+      </div>
 
       {/* Transactions */}
       <Suspense

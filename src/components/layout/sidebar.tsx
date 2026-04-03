@@ -10,9 +10,17 @@ type Props = { className?: string };
 
 export async function Sidebar({ className }: Props) {
   const session = await auth();
-  const accounts = session?.user?.id
+  const rawAccounts = session?.user?.id
     ? await getAccountsForUser(session.user.id)
     : [];
+
+  // Serialize Decimal fields before passing to Client Component
+  const accounts = rawAccounts.map((a) => ({
+    account_id: a.account_id,
+    name: a.name,
+    type: a.type,
+    CALC_balance: Number(a.CALC_balance),
+  }));
 
   return (
     <aside className={className}>

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 type Account = {
   account_id: string;
   name: string;
-  CALC_balance: { toString(): string } | number;
+  CALC_balance: number;
   type: number;
 };
 
@@ -30,7 +30,7 @@ export function AccountNav({ accounts }: { accounts: Account[] }) {
         >
           <span className="truncate">{account.name}</span>
           <span className="ml-2 shrink-0 tabular-nums text-xs">
-            {Number(account.CALC_balance).toLocaleString("fr-FR", {
+            {account.CALC_balance.toLocaleString("fr-FR", {
               style: "currency",
               currency: "EUR",
             })}
