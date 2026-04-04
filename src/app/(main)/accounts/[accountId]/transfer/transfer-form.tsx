@@ -10,23 +10,93 @@ import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ArrowLeftRight } from "lucide-react";
 
-type Account = { account_id: string; name: string; CALC_balance: number };
-type Props = { accountId: string; accounts: Account[] };
+export type AccountOption = {
+  account_id: string;
+  name: string;
+  CALC_balance: number;
+  virtual: boolean;
+};
 
-export function TransferForm({ accountId, accounts }: Props) {
+export type AccountSection = {
+  label: string;
+  options: AccountOption[];
+};
+
+type Props = { accountId: string; sections: AccountSection[] };
+
+function allOptions(sections: AccountSection[]): AccountOption[] {
+  return sections.flatMap((s) => s.options);
+}
+
+export function TransferForm({ accountId, sections }: Props) {
   const t = useTranslations("TransferForm");
   const action = createTransfer.bind(null, accountId);
   const [error, formAction, pending] = useActionState(action, undefined);
 
-  const otherDefault = accounts.find((a) => a.account_id !== accountId)?.account_id ?? "";
-  const [fromId, setFromId] = useState(accountId);
-  const [toId, setToId] = useState(otherDefault);
+  const options = allOptions(sections);
+  const defaultFrom = options.find((o) => o.account_id === accountId)?.account_id
+    ?? options[0]?.account_id ?? "";
+  const defaultTo = options.find((o) => o.account_id !== defaultFrom)?.account_id ?? "";
+
+  const [fromId, setFromId] = useState(defaultFrom);
+  const [toId, setToId] = useState(defaultTo);
 
   const today = new Date().toISOString().split("T")[0];
 
   function swap() {
     setFromId(toId);
     setToId(fromId);
+  }
+
+  function AccountList({
+    selected,
+    onChange,
+    radioName,
+  }: {
+    selected: string;
+    onChange: (id: string) => void;
+    radioName: string;
+  }) {
+    return (
+      <div className="flex flex-col gap-3 rounded-md border p-2">
+        {sections.map((section) => (
+          <div key={section.label}>
+            <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {section.label}
+            </p>
+            {section.options.map((opt) => (
+              <label
+                key={opt.account_id}
+                className={`flex items-center justify-between gap-2 rounded px-2 py-1.5 cursor-pointer transition-colors ${
+                  selected === opt.account_id
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent/50"
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <input
+                    type="radio"
+                    name={radioName}
+                    value={opt.account_id}
+                    checked={selected === opt.account_id}
+                    onChange={() => onChange(opt.account_id)}
+                    className="shrink-0"
+                  />
+                  <span className={`text-sm truncate ${opt.virtual ? "italic text-muted-foreground" : ""}`}>
+                    {opt.name}
+                  </span>
+                </div>
+                {!opt.virtual && (
+                  <span className="text-xs tabular-nums text-muted-foreground shrink-0">
+                    {opt.CALC_balance.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -36,37 +106,11 @@ export function TransferForm({ accountId, accounts }: Props) {
 
       {/* From / To */}
       <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
-        {/* From */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold">{t("fromLabel")}</Label>
-          <div className="flex flex-col gap-1 rounded-md border p-2">
-            {accounts.map((a) => (
-              <label
-                key={a.account_id}
-                className={`flex items-center justify-between gap-2 rounded px-2 py-1.5 cursor-pointer transition-colors ${
-                  fromId === a.account_id ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <input
-                    type="radio"
-                    name="from_radio"
-                    value={a.account_id}
-                    checked={fromId === a.account_id}
-                    onChange={() => setFromId(a.account_id)}
-                    className="shrink-0"
-                  />
-                  <span className="text-sm truncate">{a.name}</span>
-                </div>
-                <span className="text-xs tabular-nums text-muted-foreground shrink-0">
-                  {a.CALC_balance.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
-                </span>
-              </label>
-            ))}
-          </div>
+          <AccountList selected={fromId} onChange={setFromId} radioName="from_radio" />
         </div>
 
-        {/* Swap button */}
         <div className="flex items-center pt-7">
           <button
             type="button"
@@ -77,34 +121,9 @@ export function TransferForm({ accountId, accounts }: Props) {
           </button>
         </div>
 
-        {/* To */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold">{t("toLabel")}</Label>
-          <div className="flex flex-col gap-1 rounded-md border p-2">
-            {accounts.map((a) => (
-              <label
-                key={a.account_id}
-                className={`flex items-center justify-between gap-2 rounded px-2 py-1.5 cursor-pointer transition-colors ${
-                  toId === a.account_id ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <input
-                    type="radio"
-                    name="to_radio"
-                    value={a.account_id}
-                    checked={toId === a.account_id}
-                    onChange={() => setToId(a.account_id)}
-                    className="shrink-0"
-                  />
-                  <span className="text-sm truncate">{a.name}</span>
-                </div>
-                <span className="text-xs tabular-nums text-muted-foreground shrink-0">
-                  {a.CALC_balance.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
-                </span>
-              </label>
-            ))}
-          </div>
+          <AccountList selected={toId} onChange={setToId} radioName="to_radio" />
         </div>
       </div>
 

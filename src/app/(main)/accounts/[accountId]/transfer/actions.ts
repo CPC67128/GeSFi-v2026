@@ -20,13 +20,33 @@ export async function createTransfer(
   const amountStr = formData.get("amount") as string;
   const confirmed = formData.get("confirmed") === "on";
 
+  const isVirtual = (id: string) => id.startsWith("__unknown");
+
   if (!designation) return "Le libellé est obligatoire.";
   if (!dateStr) return "La date est obligatoire.";
   if (!fromAccountId || !toAccountId) return "Veuillez sélectionner les deux comptes.";
-  if (fromAccountId === toAccountId) return "Les comptes source et destination doivent être différents.";
+  if (!isVirtual(fromAccountId) && fromAccountId === toAccountId) return "Les comptes source et destination doivent être différents.";
 
   const amount = parseFloat(amountStr);
   if (!amount || amount <= 0) return "Le montant doit être supérieur à zéro.";
+  const resolvedFrom = isVirtual(fromAccountId) ? "" : fromAccountId;
+  const resolvedTo = isVirtual(toAccountId) ? "" : toAccountId;
+
+  // Resolve user_id from the "from" side owner
+  let transferUserId = session.user.id;
+  if (fromAccountId === "__unknown_partner__") {
+    const partner = await prisma.bf_user.findFirst({
+      where: { user_id: { not: session.user.id } },
+      select: { user_id: true },
+    });
+    if (partner) transferUserId = partner.user_id;
+  } else if (!isVirtual(fromAccountId)) {
+    const fromAccount = await prisma.bf_account.findUnique({
+      where: { account_id: fromAccountId },
+      select: { owner_user_id: true },
+    });
+    if (fromAccount?.owner_user_id) transferUserId = fromAccount.owner_user_id;
+  }
 
   const recordDate = new Date(dateStr);
   const recordGroupId = randomUUID();
@@ -36,8 +56,8 @@ export async function createTransfer(
       {
         record_id: randomUUID(),
         record_group_id: recordGroupId,
-        account_id: fromAccountId,
-        user_id: session.user.id,
+        account_id: resolvedFrom,
+        user_id: transferUserId,
         record_date: recordDate,
         record_date_month: recordDate.getMonth() + 1,
         record_date_year: recordDate.getFullYear(),
@@ -56,8 +76,8 @@ export async function createTransfer(
       {
         record_id: randomUUID(),
         record_group_id: recordGroupId,
-        account_id: toAccountId,
-        user_id: session.user.id,
+        account_id: resolvedTo,
+        user_id: transferUserId,
         record_date: recordDate,
         record_date_month: recordDate.getMonth() + 1,
         record_date_year: recordDate.getFullYear(),

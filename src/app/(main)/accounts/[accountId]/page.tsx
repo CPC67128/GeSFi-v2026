@@ -17,11 +17,9 @@ type Props = {
 
 async function TransactionList({
   accountId,
-  userId,
   query,
 }: {
   accountId: string;
-  userId: string;
   query: string;
 }) {
   // CAST(record_type AS UNSIGNED) bypasses the mariadb driver's TINYINT(1)→boolean coercion
@@ -34,16 +32,17 @@ async function TransactionList({
     amount: string | null;
     category_id: string;
     confirmed: number;
+    user_id: string;
   };
 
   const records = await prisma.$queryRaw<RawRecord[]>`
     SELECT record_id, record_group_id, record_date, designation,
            CAST(record_type AS UNSIGNED) AS record_type,
            amount, category_id,
-           CAST(confirmed AS UNSIGNED) AS confirmed
+           CAST(confirmed AS UNSIGNED) AS confirmed,
+           user_id
     FROM bf_record
     WHERE account_id = ${accountId}
-      AND user_id   = ${userId}
       AND marked_as_deleted = 0
       ${query ? Prisma.sql`AND designation LIKE ${`%${query}%`}` : Prisma.empty}
     ORDER BY record_date DESC
@@ -58,16 +57,27 @@ async function TransactionList({
     );
   }
 
-  // Fetch category names for all category_ids present in these records
+  // Fetch category names and user names in parallel
   const categoryIds = [...new Set(records.map((r) => r.category_id).filter(Boolean))];
-  const categories =
+  const userIds = [...new Set(records.map((r) => r.user_id).filter(Boolean))];
+
+  const [categories, users] = await Promise.all([
     categoryIds.length > 0
-      ? await prisma.bf_category.findMany({
+      ? prisma.bf_category.findMany({
           where: { category_id: { in: categoryIds } },
           select: { category_id: true, category: true },
         })
-      : [];
+      : Promise.resolve([]),
+    userIds.length > 0
+      ? prisma.bf_user.findMany({
+          where: { user_id: { in: userIds } },
+          select: { user_id: true, name: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
   const categoryMap = new Map(categories.map((c) => [c.category_id, c.category]));
+  const userMap = new Map(users.map((u) => [u.user_id, (u.name ?? "").split(" ")[0] || u.user_id]));
 
   // Group records by record_group_id, preserving the desc date order of the first occurrence
   const groupMap = new Map<string, typeof records>();
@@ -86,6 +96,7 @@ async function TransactionList({
       record_date: first.record_date,
       record_type: Number(first.record_type),
       confirmed: Number(first.confirmed) !== 0,
+      userName: userMap.get(first.user_id) ?? "",
       total,
       lines: recs.map((r) => ({
         category: categoryMap.get(r.category_id) ?? "",
@@ -131,8 +142,7 @@ async function TransactionList({
 export default async function AccountPage({ params, searchParams }: Props) {
   const { accountId } = await params;
   const { q: query = "" } = await searchParams;
-  const session = await auth();
-  const userId = session!.user.id;
+  await auth();
   const t = await getTranslations("AccountPage");
 
   const account = await prisma.bf_account.findUnique({
@@ -202,7 +212,6 @@ export default async function AccountPage({ params, searchParams }: Props) {
       >
         <TransactionList
           accountId={accountId}
-          userId={userId}
           query={query}
         />
       </Suspense>

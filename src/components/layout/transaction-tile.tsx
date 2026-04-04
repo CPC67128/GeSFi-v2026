@@ -1,4 +1,5 @@
 import { ConfirmButton } from "./confirm-button";
+import { DeleteButton } from "./delete-button";
 
 export type TransactionLine = { category: string; amount: number };
 
@@ -8,6 +9,7 @@ export type Transaction = {
   record_date: Date;
   record_type: number;
   confirmed: boolean;
+  userName: string;
   total: number;
   lines: TransactionLine[];
 };
@@ -50,14 +52,20 @@ export function TransactionTile({
         </span>
       </div>
 
-      {/* Date + confirmed */}
+      {/* Date + actions */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{formattedDate}</span>
-        <ConfirmButton
-          recordGroupId={transaction.record_group_id}
-          accountId={accountId}
-          confirmed={transaction.confirmed}
-        />
+        <span className="text-xs text-muted-foreground">{formattedDate} · {transaction.userName}</span>
+        <div className="flex items-center gap-1">
+          <ConfirmButton
+            recordGroupId={transaction.record_group_id}
+            accountId={accountId}
+            confirmed={transaction.confirmed}
+          />
+          <DeleteButton
+            recordGroupId={transaction.record_group_id}
+            accountId={accountId}
+          />
+        </div>
       </div>
 
       {/* Category lines */}
