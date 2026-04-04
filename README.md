@@ -54,7 +54,19 @@ Open [http://localhost:3000](http://localhost:3000).
 |---|---|---|
 | 10 | Credit (transfer in) | blue + |
 | 12 | Income | blue + |
+| 20 | Transfer out (debit side) | red − |
 | 22 | Expense | red − |
+
+Transfer creates two linked records sharing a `record_group_id`: type 20 on the source account, type 10 on the destination.
+
+## Features
+
+- **Account view** — transaction tiles grouped by month, all users' records shown. Each tile displays the record owner's first name next to the date.
+- **Confirm toggle** — click the icon on a tile to confirm/unconfirm all records in the group.
+- **Soft delete** — inline confirmation on each tile; marks all records in the `record_group_id` group as deleted.
+- **Add transaction** — separate "Dépense" and "Revenu" entry points from the account page; the form opens with the correct mode pre-selected. Amount formula supports both `.` and `,` as decimal separator. Confirmed is checked by default.
+- **Designation autocomplete** — suggests past entries (contains search) as you type; clears after a selection is made.
+- **Transfer** — creates two linked records (type 20 / type 10) with a shared `record_group_id`. Supports real accounts and virtual "Compte inconnu" sentinels. Source/dest sorted by user preference.
 
 ## Project structure
 

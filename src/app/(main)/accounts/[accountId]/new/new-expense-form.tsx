@@ -17,9 +17,11 @@ type Mode = "expense" | "income";
 
 const CATEGORY_TYPE: Record<Mode, number> = { expense: 1, income: 0 };
 
-// Safely evaluate a formula containing only numbers, +, - and spaces
+// Safely evaluate a formula containing only numbers, +, - and spaces.
+// Accepts both . and , as decimal separator.
 function parseFormula(input: string): number {
-  const tokens = input.match(/[+-]?\s*\d+(\.\d+)?/g);
+  const normalized = input.replace(/,/g, ".");
+  const tokens = normalized.match(/[+-]?\s*\d+(\.\d+)?/g);
   if (!tokens) return 0;
   return tokens.reduce((sum, t) => sum + parseFloat(t.replace(/\s/g, "")), 0);
 }
@@ -55,13 +57,13 @@ function computeAmounts(
   return result;
 }
 
-type Props = { accountId: string; categories: Category[] };
+type Props = { accountId: string; categories: Category[]; initialMode?: Mode };
 
-export function NewExpenseForm({ accountId, categories }: Props) {
+export function NewExpenseForm({ accountId, categories, initialMode = "expense" }: Props) {
   const t = useTranslations("NewExpenseForm");
   const action = createExpense.bind(null, accountId);
   const [error, formAction, pending] = useActionState(action, undefined);
-  const [mode, setMode] = useState<Mode>("expense");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [formulas, setFormulas] = useState<Record<string, string>>({});
 
   const today = new Date().toISOString().split("T")[0];
@@ -129,7 +131,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
           <DesignationInput name="designation" placeholder={t("designationPlaceholder")} required />
         </div>
         <div className="flex items-center gap-2 sm:col-span-2">
-          <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" />
+          <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" defaultChecked />
           <Label htmlFor="confirmed">{t("confirmedLabel")}</Label>
         </div>
       </div>

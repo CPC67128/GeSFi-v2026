@@ -16,6 +16,8 @@
   },
   "AccountPage": {
     "addTransaction": "Ajouter une transaction",
+    "addExpense": "Dépense",
+    "addIncome": "Revenu",
     "transfer": "Virement",
     "noTransactions": "Aucune transaction pour le moment.",
     "noTransactionsSearch": "Aucune transaction correspondant à \"{query}\"."

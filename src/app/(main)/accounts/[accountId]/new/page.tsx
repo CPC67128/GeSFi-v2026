@@ -5,10 +5,11 @@ import { NewExpenseForm } from "./new-expense-form";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-type Props = { params: Promise<{ accountId: string }> };
+type Props = { params: Promise<{ accountId: string }>; searchParams: Promise<{ mode?: string }> };
 
-export default async function NewExpensePage({ params }: Props) {
+export default async function NewExpensePage({ params, searchParams }: Props) {
   const { accountId } = await params;
+  const { mode } = await searchParams;
   const session = await auth();
   const userId = session!.user.id;
   const t = await getTranslations("NewExpensePage");
@@ -37,7 +38,7 @@ export default async function NewExpensePage({ params }: Props) {
         <h2 className="text-xl font-bold">{t("title")}</h2>
       </div>
 
-      <NewExpenseForm accountId={accountId} categories={categories} />
+      <NewExpenseForm accountId={accountId} categories={categories} initialMode={mode === "income" ? "income" : "expense"} />
     </div>
   );
 }

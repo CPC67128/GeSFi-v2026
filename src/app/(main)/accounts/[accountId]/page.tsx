@@ -8,7 +8,7 @@ import { TransactionTile } from "@/components/layout/transaction-tile";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { ArrowLeftRight, Plus } from "lucide-react";
+import { ArrowLeftRight, TrendingDown, TrendingUp } from "lucide-react";
 
 type Props = {
   params: Promise<{ accountId: string }>;
@@ -184,11 +184,18 @@ export default async function AccountPage({ params, searchParams }: Props) {
       {/* Search + Add */}
       <div className="flex items-center gap-2">
         <Link
-          href={`/accounts/${accountId}/new`}
-          className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+          href={`/accounts/${accountId}/new?mode=expense`}
+          className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
         >
-          <Plus size={16} />
-          <span className="sr-only">{t("addTransaction")}</span>
+          <TrendingDown size={15} />
+          {t("addExpense")}
+        </Link>
+        <Link
+          href={`/accounts/${accountId}/new?mode=income`}
+          className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+        >
+          <TrendingUp size={15} />
+          {t("addIncome")}
         </Link>
         <Link
           href={`/accounts/${accountId}/transfer`}

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     FROM bf_record
     WHERE user_id = ${session.user.id}
       AND marked_as_deleted = 0
-      AND designation LIKE ${q + "%"}
+      AND designation LIKE ${"%" + q + "%"}
     GROUP BY designation
     ORDER BY cnt DESC
     LIMIT 8`;

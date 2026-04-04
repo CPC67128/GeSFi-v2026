@@ -41,7 +41,10 @@ TypeScript rewrite of a PHP personal finance app. The MariaDB database is **not 
 |---|---|---|
 | 10 | Credit / transfer in | blue + |
 | 12 | Income | blue + |
+| 20 | Transfer out (debit side) | red − |
 | 22 | Expense / debit | red − |
+
+Transfer always creates two records sharing a `record_group_id`: type 20 on the source account, type 10 on the destination.
 
 ## Auth
 - Credentials provider with MD5 password hashing (`createHash("md5")`).
