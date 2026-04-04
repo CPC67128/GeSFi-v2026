@@ -42,7 +42,7 @@ export async function createTransfer(
         record_date_month: recordDate.getMonth() + 1,
         record_date_year: recordDate.getFullYear(),
         designation,
-        record_type: 22,
+        record_type: 20,
         amount,
         charge: 100,
         actor: 0,
