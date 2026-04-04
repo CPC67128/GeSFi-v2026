@@ -1,22 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 type Account = {
   account_id: string;
   name: string;
-  CALC_balance: number;
   type: number;
+  balance: number;
 };
 
-export function AccountNav({ accounts }: { accounts: Account[] }) {
+type Tab = "comptes" | "placements";
+
+function AccountList({ accounts }: { accounts: Account[] }) {
   const params = useParams();
   const currentId = params.accountId as string | undefined;
 
   return (
-    <nav className="flex flex-col gap-1 p-2">
+    <>
       {accounts.map((account) => (
         <Link
           key={account.account_id}
@@ -30,13 +33,60 @@ export function AccountNav({ accounts }: { accounts: Account[] }) {
         >
           <span className="truncate">{account.name}</span>
           <span className="ml-2 shrink-0 tabular-nums text-xs">
-            {account.CALC_balance.toLocaleString("fr-FR", {
+            {account.balance.toLocaleString("fr-FR", {
               style: "currency",
               currency: "EUR",
             })}
           </span>
         </Link>
       ))}
+    </>
+  );
+}
+
+export function AccountNav({
+  comptes,
+  placements,
+}: {
+  comptes: Account[];
+  placements: Account[];
+}) {
+  const [tab, setTab] = useState<Tab>("comptes");
+
+  return (
+    <nav className="flex flex-col">
+      {/* Tab toggle */}
+      <div className="flex mx-2 mt-2 mb-1 rounded-md border overflow-hidden text-xs font-medium">
+        <button
+          type="button"
+          onClick={() => setTab("comptes")}
+          className={cn(
+            "flex-1 py-1.5 transition-colors",
+            tab === "comptes"
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/50"
+          )}
+        >
+          Comptes
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("placements")}
+          className={cn(
+            "flex-1 py-1.5 border-l transition-colors",
+            tab === "placements"
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/50"
+          )}
+        >
+          Placements
+        </button>
+      </div>
+
+      {/* Account list */}
+      <div className="flex flex-col gap-1 p-2">
+        <AccountList accounts={tab === "comptes" ? comptes : placements} />
+      </div>
     </nav>
   );
 }

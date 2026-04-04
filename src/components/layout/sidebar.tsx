@@ -6,6 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { getAccountsForUser } from "@/lib/accounts";
 import { auth } from "@/auth";
 import { signOut } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 type Props = { className?: string };
 
@@ -16,13 +18,57 @@ export async function Sidebar({ className }: Props) {
     ? await getAccountsForUser(session.user.id)
     : [];
 
-  // Serialize Decimal fields before passing to Client Component
-  const accounts = rawAccounts.map((a) => ({
-    account_id: a.account_id,
-    name: a.name,
-    type: a.type,
-    CALC_balance: Number(a.CALC_balance),
-  }));
+  const compteIds = rawAccounts.filter((a) => a.type !== 10).map((a) => a.account_id);
+  const placementIds = rawAccounts.filter((a) => a.type === 10).map((a) => a.account_id);
+
+  type LiveBalanceRow = { account_id: string; balance: string };
+  type ValuationRow = { account_id: string; value: string };
+
+  const [liveBalances, valuations] = await Promise.all([
+    compteIds.length > 0
+      ? prisma.$queryRaw<LiveBalanceRow[]>`
+          SELECT account_id,
+            COALESCE(SUM(CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END), 0) AS balance
+          FROM bf_record
+          WHERE account_id IN (${Prisma.join(compteIds)})
+            AND marked_as_deleted = 0
+          GROUP BY account_id`
+      : Promise.resolve([] as LiveBalanceRow[]),
+    placementIds.length > 0
+      ? prisma.$queryRaw<ValuationRow[]>`
+          SELECT account_id, value
+          FROM (
+            SELECT account_id, value,
+              ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY record_date DESC, record_id DESC) AS rn
+            FROM bf_record
+            WHERE account_id IN (${Prisma.join(placementIds)})
+              AND CAST(record_type AS UNSIGNED) = 30
+              AND marked_as_deleted = 0
+          ) t
+          WHERE rn = 1`
+      : Promise.resolve([] as ValuationRow[]),
+  ]);
+
+  const liveBalanceMap = new Map(liveBalances.map((r) => [r.account_id, Number(r.balance)]));
+  const valuationMap = new Map(valuations.map((r) => [r.account_id, Number(r.value)]));
+
+  const comptes = rawAccounts
+    .filter((a) => a.type !== 10)
+    .map((a) => ({
+      account_id: a.account_id,
+      name: a.name,
+      type: a.type,
+      balance: liveBalanceMap.get(a.account_id) ?? 0,
+    }));
+
+  const placements = rawAccounts
+    .filter((a) => a.type === 10)
+    .map((a) => ({
+      account_id: a.account_id,
+      name: a.name,
+      type: a.type,
+      balance: valuationMap.get(a.account_id) ?? 0,
+    }));
 
   return (
     <aside className={className}>
@@ -35,10 +81,7 @@ export async function Sidebar({ className }: Props) {
         <Separator />
 
         <div className="flex-1 overflow-y-auto">
-          <p className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t("accountsHeading")}
-          </p>
-          <AccountNav accounts={accounts} />
+          <AccountNav comptes={comptes} placements={placements} />
         </div>
 
         <Separator />

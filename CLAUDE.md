@@ -43,8 +43,23 @@ TypeScript rewrite of a PHP personal finance app. The MariaDB database is **not 
 | 12 | Income | blue + |
 | 20 | Transfer out (debit side) | red − |
 | 22 | Expense / debit | red − |
+| 30 | Valorisation snapshot (placements only) | — |
 
 Transfer always creates two records sharing a `record_group_id`: type 20 on the source account, type 10 on the destination.
+
+## Account types
+
+| `bf_account.type` | Meaning |
+|---|---|
+| 1 | Compte courant / épargne |
+| 3 | Compte duo (shared) |
+| 10 | Placement (investment) — tabular view, valorisation-based header |
+
+## Placement view specifics
+- `src/components/layout/placement-table.tsx` renders the tabular view for `account.type === 10`.
+- Cumulative columns (Versement, Versement effectif, Rachat, Revenu) use SQL window functions — no `CALC_` fields.
+- Rendement is computed in JS via a forward pass: tracks last valorisation snapshot + `Σ amount_invested − Σ withdrawal` since that snapshot, then `(estimated + Σ income + Σ withdrawal) / Σ versement − 1`.
+- Sidebar shows the latest `value` from `record_type = 30` for placement accounts (live query, not `CALC_balance`).
 
 ## Auth
 - Credentials provider with MD5 password hashing (`createHash("md5")`).

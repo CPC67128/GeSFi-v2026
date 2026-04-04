@@ -56,17 +56,38 @@ Open [http://localhost:3000](http://localhost:3000).
 | 12 | Income | blue + |
 | 20 | Transfer out (debit side) | red − |
 | 22 | Expense | red − |
+| 30 | Valorisation (placement snapshot) | — |
 
 Transfer creates two linked records sharing a `record_group_id`: type 20 on the source account, type 10 on the destination.
 
+## Account types (`bf_account.type`)
+
+| Value | Meaning |
+|---|---|
+| 1 | Compte courant / épargne |
+| 3 | Compte duo (shared) |
+| 10 | Placement (investment) |
+
 ## Features
 
-- **Account view** — transaction tiles grouped by month, all users' records shown. Each tile displays the record owner's first name next to the date.
+### Comptes (type ≠ 10)
+- **Account view** — transaction tiles grouped by month, all users' records shown. Each tile displays the record owner's first name and confirm/delete actions. Live balance computed from `bf_record` (not `CALC_` fields).
 - **Confirm toggle** — click the icon on a tile to confirm/unconfirm all records in the group.
 - **Soft delete** — inline confirmation on each tile; marks all records in the `record_group_id` group as deleted.
-- **Add transaction** — separate "Dépense" and "Revenu" entry points from the account page; the form opens with the correct mode pre-selected. Amount formula supports both `.` and `,` as decimal separator. Confirmed is checked by default.
+- **Add transaction** — separate "Dépense" and "Revenu" entry points; form opens with the correct mode pre-selected. Amount formula supports both `.` and `,` as decimal separator. Confirmed is checked by default.
 - **Designation autocomplete** — suggests past entries (contains search) as you type; clears after a selection is made.
 - **Transfer** — creates two linked records (type 20 / type 10) with a shared `record_group_id`. Supports real accounts and virtual "Compte inconnu" sentinels. Source/dest sorted by user preference.
+
+### Placements (type = 10)
+- **Account view** — tabular layout, one row per `bf_record`, ordered newest first.
+- **Columns**: Date, Jours (since `creation_date`), Libellé, Versement (`amount`), Versement effectif (`amount_invested`), Rachat (`withdrawal`), Valorisation (`value`, `record_type = 30` only), Revenu (`income`), Rendement.
+- **Cumulative sub-values** — Versement, Versement effectif, Rachat and Revenu each show a live running total below the row value (SQL window functions, no `CALC_` fields).
+- **Rendement** — computed per row in JS: `(estimated_value + Σ income + Σ withdrawal) / Σ versement − 1`. Estimated value uses the last known valorisation (`record_type = 30`) plus `Σ amount_invested − Σ withdrawal` since that snapshot.
+- **Header** — shows the most recent valorisation value and its date instead of a balance.
+
+### Sidebar
+- Accounts split into "Comptes" / "Placements" tabs; "Comptes" selected by default.
+- Comptes show live balance; Placements show latest valorisation (`record_type = 30` value).
 
 ## Project structure
 
@@ -89,8 +110,8 @@ src/
   i18n/
     request.ts        # next-intl locale config (fixed to "fr")
   components/
-    layout/           # Sidebar, AccountNav, TransactionTile,
-                      # ConfirmButton, DesignationInput, etc.
+    layout/           # Sidebar, AccountNav, TransactionTile, PlacementTable,
+                      # ConfirmButton, DeleteButton, DesignationInput, etc.
     ui/               # shadcn/ui components
   lib/
     prisma.ts         # Prisma singleton (server-only)

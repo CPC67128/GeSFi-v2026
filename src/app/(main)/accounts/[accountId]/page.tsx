@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { getTranslations } from "next-intl/server";
 import { SearchBox } from "@/components/layout/search-box";
 import { TransactionTile } from "@/components/layout/transaction-tile";
+import { PlacementTable } from "@/components/layout/placement-table";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
@@ -146,24 +147,39 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const t = await getTranslations("AccountPage");
 
   type BalanceRow = { balance: string; balance_confirmed: string };
+  type ValuationRow = { value: string; record_date: Date };
 
-  const [account, [balanceRow]] = await Promise.all([
-    prisma.bf_account.findUnique({ where: { account_id: accountId } }),
-    prisma.$queryRaw<BalanceRow[]>`
-      SELECT
-        COALESCE(SUM(CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END), 0) AS balance,
-        COALESCE(SUM(CASE WHEN CAST(confirmed AS UNSIGNED) = 1
-          THEN CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END
-          ELSE 0 END), 0) AS balance_confirmed
-      FROM bf_record
-      WHERE account_id = ${accountId}
-        AND marked_as_deleted = 0`,
-  ]);
-
+  const account = await prisma.bf_account.findUnique({ where: { account_id: accountId } });
   if (!account) notFound();
 
-  const balance = Number(balanceRow.balance);
-  const confirmed = Number(balanceRow.balance_confirmed);
+  const isPlacement = account.type === 10;
+
+  const [balanceRow, lastValuation] = await Promise.all([
+    isPlacement
+      ? Promise.resolve(null)
+      : prisma.$queryRaw<BalanceRow[]>`
+          SELECT
+            COALESCE(SUM(CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END), 0) AS balance,
+            COALESCE(SUM(CASE WHEN CAST(confirmed AS UNSIGNED) = 1
+              THEN CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END
+              ELSE 0 END), 0) AS balance_confirmed
+          FROM bf_record
+          WHERE account_id = ${accountId}
+            AND marked_as_deleted = 0`.then((rows) => rows[0] ?? null),
+    isPlacement
+      ? prisma.$queryRaw<ValuationRow[]>`
+          SELECT value, record_date
+          FROM bf_record
+          WHERE account_id = ${accountId}
+            AND CAST(record_type AS UNSIGNED) = 30
+            AND marked_as_deleted = 0
+          ORDER BY record_date DESC
+          LIMIT 1`.then((rows) => rows[0] ?? null)
+      : Promise.resolve(null),
+  ]);
+
+  const balance = balanceRow ? Number(balanceRow.balance) : 0;
+  const confirmed = balanceRow ? Number(balanceRow.balance_confirmed) : 0;
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -171,24 +187,41 @@ export default async function AccountPage({ params, searchParams }: Props) {
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold">{account.name}</h2>
         <div className="flex gap-6 text-sm">
-          <div>
-            <p className="text-xs text-muted-foreground">Solde</p>
-            <p className="font-semibold tabular-nums">
-              {balance.toLocaleString("fr-FR", {
-                style: "currency",
-                currency: "EUR",
-              })}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Confirmé</p>
-            <p className="font-semibold tabular-nums">
-              {confirmed.toLocaleString("fr-FR", {
-                style: "currency",
-                currency: "EUR",
-              })}
-            </p>
-          </div>
+          {isPlacement ? (
+            lastValuation && (
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  Valorisation du{" "}
+                  {new Date(lastValuation.record_date).toLocaleDateString("fr-FR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
+                </p>
+                <p className="font-semibold tabular-nums">
+                  {Number(lastValuation.value).toLocaleString("fr-FR", {
+                    style: "currency",
+                    currency: "EUR",
+                  })}
+                </p>
+              </div>
+            )
+          ) : (
+            <>
+              <div>
+                <p className="text-xs text-muted-foreground">Solde</p>
+                <p className="font-semibold tabular-nums">
+                  {balance.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Confirmé</p>
+                <p className="font-semibold tabular-nums">
+                  {confirmed.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -219,20 +252,23 @@ export default async function AccountPage({ params, searchParams }: Props) {
       </div>
 
       {/* Transactions */}
-      <Suspense
-        fallback={
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-lg" />
-            ))}
-          </div>
-        }
-      >
-        <TransactionList
-          accountId={accountId}
-          query={query}
-        />
-      </Suspense>
+      {account.type === 10 ? (
+        <Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
+          <PlacementTable accountId={accountId} query={query} creationDate={account.creation_date} />
+        </Suspense>
+      ) : (
+        <Suspense
+          fallback={
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-lg" />
+              ))}
+            </div>
+          }
+        >
+          <TransactionList accountId={accountId} query={query} />
+        </Suspense>
+      )}
     </div>
   );
 }
