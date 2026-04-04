@@ -116,7 +116,7 @@ async function TransactionList({
             </h3>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {txs.map((tx) => (
-                <TransactionTile key={tx.record_group_id} transaction={tx} />
+                <TransactionTile key={tx.record_group_id} transaction={tx} accountId={accountId} />
               ))}
             </div>
           </section>

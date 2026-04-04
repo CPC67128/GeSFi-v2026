@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock } from "lucide-react";
+import { ConfirmButton } from "./confirm-button";
 
 export type TransactionLine = { category: string; amount: number };
 
@@ -13,7 +13,13 @@ export type Transaction = {
 };
 
 // 10 = credit (transfer in), 12 = income, 22 = expense
-export function TransactionTile({ transaction }: { transaction: Transaction }) {
+export function TransactionTile({
+  transaction,
+  accountId,
+}: {
+  transaction: Transaction;
+  accountId: string;
+}) {
   const isCredit = transaction.record_type === 10 || transaction.record_type === 12;
 
   const formattedDate = new Date(transaction.record_date).toLocaleDateString("fr-FR", {
@@ -47,11 +53,11 @@ export function TransactionTile({ transaction }: { transaction: Transaction }) {
       {/* Date + confirmed */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{formattedDate}</span>
-        {transaction.confirmed ? (
-          <CheckCircle2 size={13} className="text-green-500" />
-        ) : (
-          <Clock size={13} className="text-muted-foreground" />
-        )}
+        <ConfirmButton
+          recordGroupId={transaction.record_group_id}
+          accountId={accountId}
+          confirmed={transaction.confirmed}
+        />
       </div>
 
       {/* Category lines */}
