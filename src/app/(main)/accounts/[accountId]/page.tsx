@@ -145,14 +145,25 @@ export default async function AccountPage({ params, searchParams }: Props) {
   await auth();
   const t = await getTranslations("AccountPage");
 
-  const account = await prisma.bf_account.findUnique({
-    where: { account_id: accountId },
-  });
+  type BalanceRow = { balance: string; balance_confirmed: string };
+
+  const [account, [balanceRow]] = await Promise.all([
+    prisma.bf_account.findUnique({ where: { account_id: accountId } }),
+    prisma.$queryRaw<BalanceRow[]>`
+      SELECT
+        COALESCE(SUM(CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END), 0) AS balance,
+        COALESCE(SUM(CASE WHEN CAST(confirmed AS UNSIGNED) = 1
+          THEN CASE WHEN CAST(record_type AS UNSIGNED) IN (10, 12) THEN amount ELSE -amount END
+          ELSE 0 END), 0) AS balance_confirmed
+      FROM bf_record
+      WHERE account_id = ${accountId}
+        AND marked_as_deleted = 0`,
+  ]);
 
   if (!account) notFound();
 
-  const balance = Number(account.CALC_balance);
-  const confirmed = Number(account.CALC_balance_confirmed);
+  const balance = Number(balanceRow.balance);
+  const confirmed = Number(balanceRow.balance_confirmed);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">

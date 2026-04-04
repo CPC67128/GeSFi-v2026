@@ -160,7 +160,7 @@ export function TransferForm({ accountId, sections }: Props) {
           />
         </div>
         <div className="flex items-center gap-2 sm:col-span-2">
-          <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" />
+          <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" defaultChecked />
           <Label htmlFor="confirmed">{t("confirmedLabel")}</Label>
         </div>
       </div>
