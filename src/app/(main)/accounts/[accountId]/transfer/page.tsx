@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { getAccountsForUser } from "@/lib/accounts";
+import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { TransferForm } from "./transfer-form";
 import Link from "next/link";
@@ -9,11 +9,16 @@ type Props = { params: Promise<{ accountId: string }> };
 
 export default async function TransferPage({ params }: Props) {
   const { accountId } = await params;
-  const session = await auth();
-  const userId = session!.user.id;
+  await auth();
   const t = await getTranslations("TransferPage");
 
-  const rawAccounts = await getAccountsForUser(userId);
+  const rawAccounts = await prisma.bf_account.findMany({
+    where: {
+      type: { in: [1, 3, 5, 6] },
+      marked_as_closed: false,
+    },
+    select: { account_id: true, name: true, CALC_balance: true },
+  });
   const accounts = rawAccounts.map((a) => ({
     account_id: a.account_id,
     name: a.name,

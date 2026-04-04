@@ -85,7 +85,7 @@ async function TransactionList({
       designation: first.designation,
       record_date: first.record_date,
       record_type: Number(first.record_type),
-      confirmed: first.confirmed !== 0,
+      confirmed: Number(first.confirmed) !== 0,
       total,
       lines: recs.map((r) => ({
         category: categoryMap.get(r.category_id) ?? "",

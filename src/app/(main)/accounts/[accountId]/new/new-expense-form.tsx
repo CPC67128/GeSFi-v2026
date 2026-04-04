@@ -6,6 +6,7 @@ import { createExpense } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { DesignationInput } from "@/components/layout/designation-input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -120,8 +121,8 @@ export function NewExpenseForm({ accountId, categories }: Props) {
       {/* Header fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date">{t("dateLabel")}</Label>
-          <Input id="date" name="date" type="date" defaultValue={today} required />
+          <Label>{t("dateLabel")}</Label>
+          <DatePicker name="date" defaultValue={today} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="designation">{t("designationLabel")}</Label>
