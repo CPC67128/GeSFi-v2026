@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { getTranslations } from "next-intl/server";
 import { SearchBox } from "@/components/layout/search-box";
 import { TransactionTile } from "@/components/layout/transaction-tile";
 import { Suspense } from "react";
@@ -49,9 +50,10 @@ async function TransactionList({
     LIMIT 200`;
 
   if (records.length === 0) {
+    const t = await getTranslations("AccountPage");
     return (
       <p className="text-sm text-muted-foreground text-center py-12">
-        {query ? `No transactions matching "${query}".` : "No transactions yet."}
+        {query ? t("noTransactionsSearch", { query }) : t("noTransactions")}
       </p>
     );
   }
@@ -131,6 +133,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const { q: query = "" } = await searchParams;
   const session = await auth();
   const userId = session!.user.id;
+  const t = await getTranslations("AccountPage");
 
   const account = await prisma.bf_account.findUnique({
     where: { account_id: accountId },
@@ -148,7 +151,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         <h2 className="text-2xl font-bold">{account.name}</h2>
         <div className="flex gap-6 text-sm">
           <div>
-            <p className="text-xs text-muted-foreground">Balance</p>
+            <p className="text-xs text-muted-foreground">Solde</p>
             <p className="font-semibold tabular-nums">
               {balance.toLocaleString("fr-FR", {
                 style: "currency",
@@ -157,7 +160,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Confirmed</p>
+            <p className="text-xs text-muted-foreground">Confirmé</p>
             <p className="font-semibold tabular-nums">
               {confirmed.toLocaleString("fr-FR", {
                 style: "currency",
@@ -175,14 +178,14 @@ export default async function AccountPage({ params, searchParams }: Props) {
           className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <Plus size={16} />
-          <span className="sr-only">Add transaction</span>
+          <span className="sr-only">{t("addTransaction")}</span>
         </Link>
         <Link
           href={`/accounts/${accountId}/transfer`}
           className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <ArrowLeftRight size={16} />
-          <span className="sr-only">Transfer</span>
+          <span className="sr-only">{t("transfer")}</span>
         </Link>
         <SearchBox />
       </div>

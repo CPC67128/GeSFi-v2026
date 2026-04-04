@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogOut, Settings } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { AccountNav } from "./account-nav";
 import { Separator } from "@/components/ui/separator";
 import { getAccountsForUser } from "@/lib/accounts";
@@ -9,6 +10,7 @@ import { signOut } from "@/auth";
 type Props = { className?: string };
 
 export async function Sidebar({ className }: Props) {
+  const t = await getTranslations("Sidebar");
   const session = await auth();
   const rawAccounts = session?.user?.id
     ? await getAccountsForUser(session.user.id)
@@ -34,7 +36,7 @@ export async function Sidebar({ className }: Props) {
 
         <div className="flex-1 overflow-y-auto">
           <p className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Accounts
+            {t("accountsHeading")}
           </p>
           <AccountNav accounts={accounts} />
         </div>
@@ -47,7 +49,7 @@ export async function Sidebar({ className }: Props) {
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <Settings size={15} />
-            Administration
+            {t("administration")}
           </Link>
           <form
             action={async () => {
@@ -60,7 +62,7 @@ export async function Sidebar({ className }: Props) {
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <LogOut size={15} />
-              Sign out
+              {t("signOut")}
             </button>
           </form>
         </div>

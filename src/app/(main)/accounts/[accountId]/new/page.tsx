@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 import { NewExpenseForm } from "./new-expense-form";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -10,6 +11,7 @@ export default async function NewExpensePage({ params }: Props) {
   const { accountId } = await params;
   const session = await auth();
   const userId = session!.user.id;
+  const t = await getTranslations("NewExpensePage");
 
   const categories = await prisma.bf_category.findMany({
     where: {
@@ -32,7 +34,7 @@ export default async function NewExpensePage({ params }: Props) {
         >
           <ArrowLeft size={16} />
         </Link>
-        <h2 className="text-xl font-bold">Add a transaction</h2>
+        <h2 className="text-xl font-bold">{t("title")}</h2>
       </div>
 
       <NewExpenseForm accountId={accountId} categories={categories} />

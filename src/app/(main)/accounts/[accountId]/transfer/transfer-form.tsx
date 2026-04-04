@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createTransfer } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ type Account = { account_id: string; name: string; CALC_balance: number };
 type Props = { accountId: string; accounts: Account[] };
 
 export function TransferForm({ accountId, accounts }: Props) {
+  const t = useTranslations("TransferForm");
   const action = createTransfer.bind(null, accountId);
   const [error, formAction, pending] = useActionState(action, undefined);
 
@@ -34,7 +36,7 @@ export function TransferForm({ accountId, accounts }: Props) {
       {/* From / To */}
       <div className="flex items-end gap-3">
         <div className="flex-1 space-y-2">
-          <Label>From</Label>
+          <Label>{t("fromLabel")}</Label>
           <select
             className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
             value={fromId}
@@ -57,7 +59,7 @@ export function TransferForm({ accountId, accounts }: Props) {
         </button>
 
         <div className="flex-1 space-y-2">
-          <Label>To</Label>
+          <Label>{t("toLabel")}</Label>
           <select
             className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
             value={toId}
@@ -77,11 +79,11 @@ export function TransferForm({ accountId, accounts }: Props) {
       {/* Fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date">{t("dateLabel")}</Label>
           <Input id="date" name="date" type="date" defaultValue={today} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount</Label>
+          <Label htmlFor="amount">{t("amountLabel")}</Label>
           <Input
             id="amount"
             name="amount"
@@ -94,25 +96,25 @@ export function TransferForm({ accountId, accounts }: Props) {
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="designation">Designation</Label>
+          <Label htmlFor="designation">{t("designationLabel")}</Label>
           <Input
             id="designation"
             name="designation"
             type="text"
-            placeholder="Transfer description…"
+            placeholder={t("designationPlaceholder")}
             required
           />
         </div>
         <div className="flex items-center gap-2 sm:col-span-2">
           <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" />
-          <Label htmlFor="confirmed">Mark as confirmed</Label>
+          <Label htmlFor="confirmed">{t("confirmedLabel")}</Label>
         </div>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Transfer"}
+        {pending ? t("submitPending") : t("submitIdle")}
       </Button>
     </form>
   );

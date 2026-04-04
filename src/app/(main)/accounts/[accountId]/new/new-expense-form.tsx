@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createExpense } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DesignationInput } from "@/components/layout/designation-input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { TrendingDown, TrendingUp } from "lucide-react";
@@ -55,6 +57,7 @@ function computeAmounts(
 type Props = { accountId: string; categories: Category[] };
 
 export function NewExpenseForm({ accountId, categories }: Props) {
+  const t = useTranslations("NewExpenseForm");
   const action = createExpense.bind(null, accountId);
   const [error, formAction, pending] = useActionState(action, undefined);
   const [mode, setMode] = useState<Mode>("expense");
@@ -74,7 +77,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
   const visibleIds = visible.map((c) => c.category_id);
   const amounts = computeAmounts(formulas, visibleIds);
 
-  const groupLabel: Record<string, string> = { DUO: "Category Duo", USER: "Category User" };
+  const groupLabel: Record<string, string> = { DUO: t("categoryDuo"), USER: t("categoryUser") };
 
   function handleFormula(categoryId: string, value: string) {
     setFormulas((prev) => ({ ...prev, [categoryId]: value }));
@@ -95,7 +98,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
           )}
         >
           <TrendingDown size={15} />
-          Expense
+          {t("expense")}
         </button>
         <button
           type="button"
@@ -108,7 +111,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
           )}
         >
           <TrendingUp size={15} />
-          Income
+          {t("income")}
         </button>
       </div>
 
@@ -117,16 +120,16 @@ export function NewExpenseForm({ accountId, categories }: Props) {
       {/* Header fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date">{t("dateLabel")}</Label>
           <Input id="date" name="date" type="date" defaultValue={today} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="designation">Designation</Label>
-          <Input id="designation" name="designation" type="text" placeholder="Description…" required />
+          <Label htmlFor="designation">{t("designationLabel")}</Label>
+          <DesignationInput name="designation" placeholder={t("designationPlaceholder")} required />
         </div>
         <div className="flex items-center gap-2 sm:col-span-2">
           <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" />
-          <Label htmlFor="confirmed">Mark as confirmed</Label>
+          <Label htmlFor="confirmed">{t("confirmedLabel")}</Label>
         </div>
       </div>
 
@@ -136,7 +139,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
       <div className="flex flex-col gap-6">
         {visible.length === 0 && (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            No categories available.
+            {t("noCategories")}
           </p>
         )}
 
@@ -147,10 +150,10 @@ export function NewExpenseForm({ accountId, categories }: Props) {
             </h3>
 
             <div className="grid grid-cols-[1fr_130px_110px_80px] gap-2 px-1">
-              <span className="text-xs text-muted-foreground">Category</span>
-              <span className="text-xs text-muted-foreground text-right">Formula</span>
-              <span className="text-xs text-muted-foreground text-right">Amount</span>
-              <span className="text-xs text-muted-foreground text-right">Charge %</span>
+              <span className="text-xs text-muted-foreground">{t("colCategory")}</span>
+              <span className="text-xs text-muted-foreground text-right">{t("colFormula")}</span>
+              <span className="text-xs text-muted-foreground text-right">{t("colAmount")}</span>
+              <span className="text-xs text-muted-foreground text-right">{t("colCharge")}</span>
             </div>
 
             {cats.map((cat) => (
@@ -191,7 +194,7 @@ export function NewExpenseForm({ accountId, categories }: Props) {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Save"}
+        {pending ? t("submitPending") : t("submitIdle")}
       </Button>
     </form>
   );

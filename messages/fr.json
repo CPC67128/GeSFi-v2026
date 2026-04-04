@@ -1,0 +1,72 @@
+{
+  "Login": {
+    "emailLabel": "Email",
+    "passwordLabel": "Mot de passe",
+    "submitIdle": "Se connecter",
+    "submitPending": "Connexion en cours…",
+    "errorInvalid": "Email ou mot de passe incorrect."
+  },
+  "Sidebar": {
+    "accountsHeading": "Comptes",
+    "administration": "Administration",
+    "signOut": "Déconnexion"
+  },
+  "MobileHeader": {
+    "openMenu": "Ouvrir le menu"
+  },
+  "AccountPage": {
+    "addTransaction": "Ajouter une transaction",
+    "transfer": "Virement",
+    "noTransactions": "Aucune transaction pour le moment.",
+    "noTransactionsSearch": "Aucune transaction correspondant à \"{query}\"."
+  },
+  "SearchBox": {
+    "placeholder": "Rechercher des transactions…"
+  },
+  "ConfirmButton": {
+    "markConfirmed": "Marquer comme confirmé",
+    "markUnconfirmed": "Marquer comme non confirmé"
+  },
+  "NewExpensePage": {
+    "title": "Ajouter une transaction",
+    "back": "Retour"
+  },
+  "NewExpenseForm": {
+    "expense": "Dépense",
+    "income": "Revenu",
+    "dateLabel": "Date",
+    "designationLabel": "Libellé",
+    "designationPlaceholder": "Description…",
+    "confirmedLabel": "Marquer comme confirmé",
+    "categoryDuo": "Catégorie Duo",
+    "categoryUser": "Catégorie Utilisateur",
+    "colCategory": "Catégorie",
+    "colFormula": "Formule",
+    "colAmount": "Montant",
+    "colCharge": "Charge %",
+    "noCategories": "Aucune catégorie disponible.",
+    "submitIdle": "Enregistrer",
+    "submitPending": "Enregistrement…"
+  },
+  "TransferPage": {
+    "title": "Virement",
+    "back": "Retour"
+  },
+  "TransferForm": {
+    "fromLabel": "De",
+    "toLabel": "À",
+    "dateLabel": "Date",
+    "amountLabel": "Montant",
+    "designationLabel": "Libellé",
+    "designationPlaceholder": "Description du virement…",
+    "confirmedLabel": "Marquer comme confirmé",
+    "submitIdle": "Virer",
+    "submitPending": "Enregistrement…",
+    "errorNotAuth": "Non authentifié.",
+    "errorNoDesignation": "Le libellé est obligatoire.",
+    "errorNoDate": "La date est obligatoire.",
+    "errorNoAccounts": "Veuillez sélectionner les deux comptes.",
+    "errorSameAccounts": "Les comptes source et destination doivent être différents.",
+    "errorInvalidAmount": "Le montant doit être supérieur à zéro."
+  }
+}

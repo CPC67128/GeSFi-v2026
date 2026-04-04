@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, Clock } from "lucide-react";
 import { toggleConfirmed } from "./confirm-action";
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function ConfirmButton({ recordGroupId, accountId, confirmed }: Props) {
+  const t = useTranslations("ConfirmButton");
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
@@ -21,7 +23,7 @@ export function ConfirmButton({ recordGroupId, accountId, confirmed }: Props) {
     <button
       onClick={handleClick}
       disabled={isPending}
-      title={confirmed ? "Mark as unconfirmed" : "Mark as confirmed"}
+      title={confirmed ? t("markUnconfirmed") : t("markConfirmed")}
       className="transition-opacity disabled:opacity-40 hover:scale-110 transition-transform"
     >
       {confirmed ? (

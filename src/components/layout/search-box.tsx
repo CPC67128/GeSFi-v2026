@@ -2,10 +2,12 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 export function SearchBox() {
+  const t = useTranslations("SearchBox");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -33,7 +35,7 @@ export function SearchBox() {
       <Input
         defaultValue={searchParams.get("q") ?? ""}
         onChange={handleChange}
-        placeholder="Search transactions…"
+        placeholder={t("placeholder")}
         className="pl-9"
       />
     </div>

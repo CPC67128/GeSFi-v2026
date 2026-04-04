@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getAccountsForUser } from "@/lib/accounts";
+import { getTranslations } from "next-intl/server";
 import { TransferForm } from "./transfer-form";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -10,6 +11,7 @@ export default async function TransferPage({ params }: Props) {
   const { accountId } = await params;
   const session = await auth();
   const userId = session!.user.id;
+  const t = await getTranslations("TransferPage");
 
   const rawAccounts = await getAccountsForUser(userId);
   const accounts = rawAccounts.map((a) => ({
@@ -27,7 +29,7 @@ export default async function TransferPage({ params }: Props) {
         >
           <ArrowLeft size={16} />
         </Link>
-        <h2 className="text-xl font-bold">Transfer</h2>
+        <h2 className="text-xl font-bold">{t("title")}</h2>
       </div>
 
       <TransferForm accountId={accountId} accounts={accounts} />

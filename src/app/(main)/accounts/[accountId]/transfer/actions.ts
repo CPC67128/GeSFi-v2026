@@ -11,7 +11,7 @@ export async function createTransfer(
   formData: FormData
 ): Promise<string | undefined> {
   const session = await auth();
-  if (!session?.user?.id) return "Not authenticated.";
+  if (!session?.user?.id) return "Non authentifié.";
 
   const fromAccountId = formData.get("from_account_id") as string;
   const toAccountId = formData.get("to_account_id") as string;
@@ -20,13 +20,13 @@ export async function createTransfer(
   const amountStr = formData.get("amount") as string;
   const confirmed = formData.get("confirmed") === "on";
 
-  if (!designation) return "Designation is required.";
-  if (!dateStr) return "Date is required.";
-  if (!fromAccountId || !toAccountId) return "Please select both accounts.";
-  if (fromAccountId === toAccountId) return "Source and destination accounts must be different.";
+  if (!designation) return "Le libellé est obligatoire.";
+  if (!dateStr) return "La date est obligatoire.";
+  if (!fromAccountId || !toAccountId) return "Veuillez sélectionner les deux comptes.";
+  if (fromAccountId === toAccountId) return "Les comptes source et destination doivent être différents.";
 
   const amount = parseFloat(amountStr);
-  if (!amount || amount <= 0) return "Amount must be greater than zero.";
+  if (!amount || amount <= 0) return "Le montant doit être supérieur à zéro.";
 
   const recordDate = new Date(dateStr);
   const recordGroupId = randomUUID();
