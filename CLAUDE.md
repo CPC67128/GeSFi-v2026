@@ -12,9 +12,10 @@ TypeScript rewrite of a PHP personal finance app. The MariaDB database is **not 
 - After any schema change, run `npx prisma generate`.
 
 ### TINYINT(1) boolean coercion
-- The MariaDB driver returns `TINYINT(1)` columns as strings from `$queryRaw`, not JS numbers.
-- `record_type` stores meaningful codes (10 = credit, 12 = income, 22 = expense). Never compare with `===` on a raw query result without wrapping in `Number()` first.
+- The MariaDB driver returns `TINYINT(1)` columns as **strings** from `$queryRaw`, not JS numbers or booleans.
+- `record_type` stores meaningful codes (10 = credit, 12 = income, 22 = expense). In `$queryRaw`, use `CAST(record_type AS UNSIGNED)` and then `Number()` in JS — never compare with `===` on the raw value.
 - For columns that must stay boolean in JS (`confirmed`, `marked_as_deleted`), use `!== 0` after `Number()`.
+- Even after casting in SQL, the driver may return the value as a string `"12"` rather than number `12`. Always coerce with `Number()` before strict equality checks.
 
 ### Next.js 16
 - Middleware file is `src/proxy.ts` with `export { auth as proxy }` — not `middleware.ts`.
@@ -26,6 +27,13 @@ TypeScript rewrite of a PHP personal finance app. The MariaDB database is **not 
 
 ### shadcn/ui
 - Built on `@base-ui/react`, not Radix UI — no `asChild` prop.
+
+### i18n (next-intl v4)
+- Pathless mode — URLs stay as `/accounts/…`, no locale prefix.
+- All strings in `messages/fr.json`. Namespaces match component names.
+- Server components: `const t = await getTranslations("Namespace")` from `next-intl/server`.
+- Client components: `const t = useTranslations("Namespace")` from `next-intl`.
+- Adding a language: create `messages/xx.json`, update `src/i18n/request.ts`.
 
 ## Record type codes
 

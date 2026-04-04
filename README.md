@@ -12,6 +12,7 @@ The existing MariaDB database is kept unchanged so the PHP app can continue runn
 | ORM | Prisma 7 with `@prisma/adapter-mariadb` |
 | Auth | Auth.js v5 (next-auth@beta) — Credentials + MD5 |
 | UI | shadcn/ui on `@base-ui/react` + Tailwind v4 |
+| i18n | next-intl v4 (pathless, single locale `fr`) |
 | Database | MariaDB (existing GeSFi schema, read-only migration policy) |
 
 ## Getting Started
@@ -42,9 +43,10 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Prisma v7** requires a driver adapter at runtime (`src/lib/prisma.ts`) and `prisma.config.ts` for CLI operations. There is no `url` field in `schema.prisma`.
 - **Next.js 16** uses `proxy.ts` (not `middleware.ts`) with a named `proxy` export.
 - **Auth split**: `src/auth.config.ts` is Edge-safe (used by the proxy); `src/auth.ts` is Node.js-only (used by server components).
-- **Prisma raw queries**: `TINYINT(1)` columns come back as strings from `$queryRaw`. Always wrap with `Number()` when comparing. Boolean columns (`marked_as_deleted`, `confirmed`) follow the same pattern.
+- **TINYINT(1) coercion**: The MariaDB driver returns `TINYINT(1)` columns as strings from `$queryRaw`. Always wrap with `Number()` when comparing. For `record_type` specifically, use `CAST(record_type AS UNSIGNED)` in the query and `Number()` when building the transaction object.
 - **shadcn/ui** uses `@base-ui/react`, not Radix UI — no `asChild` prop. `buttonVariants` is a client-only function; use inline Tailwind classes in server components.
 - **Server → Client boundary**: Prisma `Decimal` fields must be serialized with `Number()` before passing to Client Components.
+- **i18n**: All UI strings live in `messages/fr.json`. Server components use `getTranslations("Namespace")`, client components use `useTranslations("Namespace")`. To add a language, create `messages/xx.json` and update `src/i18n/request.ts`.
 
 ## Record types (`bf_record.record_type`)
 
@@ -66,18 +68,25 @@ src/
           new/              # Add expense/income form
           transfer/         # Transfer between accounts
     (admin)/          # Admin area (non-responsive)
+    api/
+      designations/   # Autocomplete suggestions for designation field
     login/            # Login page
   auth.config.ts      # Edge-safe auth config
   auth.ts             # Full auth (Node.js)
   proxy.ts            # Route guard (replaces middleware.ts)
+  i18n/
+    request.ts        # next-intl locale config (fixed to "fr")
   components/
-    layout/           # Sidebar, AccountNav, TransactionTile, etc.
+    layout/           # Sidebar, AccountNav, TransactionTile,
+                      # ConfirmButton, DesignationInput, etc.
     ui/               # shadcn/ui components
   lib/
     prisma.ts         # Prisma singleton (server-only)
     accounts.ts       # Cached account fetcher (server-only)
   generated/
     prisma/           # Generated Prisma client (do not edit)
+messages/
+  fr.json             # French UI strings
 prisma/
   schema.prisma       # Prisma schema (mysql provider, no url field)
 prisma.config.ts      # Prisma CLI config (provides DATABASE_URL)
