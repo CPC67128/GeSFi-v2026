@@ -38,7 +38,13 @@ export function TransactionTile({
   });
 
   return (
-    <div className="flex flex-col rounded-lg border bg-card p-4 gap-2 hover:bg-accent/50 transition-colors">
+    <div className={`flex flex-col rounded-lg border p-4 gap-2 transition-colors ${
+      transaction.record_type === 10
+        ? "bg-blue-950/40 hover:bg-blue-950/60 border-blue-900/40"
+        : transaction.record_type === 20
+        ? "bg-red-950/40 hover:bg-red-950/60 border-red-900/40"
+        : "bg-card hover:bg-accent/50"
+    }`}>
       {/* Designation + total */}
       <div className="flex items-start justify-between gap-4">
         <span className="text-sm font-medium truncate">{transaction.designation}</span>
