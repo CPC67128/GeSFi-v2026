@@ -8,25 +8,39 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 type Props = {
   name: string;
   defaultValue?: string; // YYYY-MM-DD
+  value?: string;        // YYYY-MM-DD — controlled mode
+  onSelect?: (iso: string) => void;
 };
 
-export function DatePicker({ name, defaultValue }: Props) {
-  const initial = defaultValue ? new Date(defaultValue + "T12:00:00") : new Date();
+export function DatePicker({ name, defaultValue, value, onSelect }: Props) {
+  const initial = (value ?? defaultValue)
+    ? new Date((value ?? defaultValue)! + "T12:00:00")
+    : new Date();
   const [selected, setSelected] = useState<Date>(initial);
 
-  const isoValue = [
-    selected.getFullYear(),
-    String(selected.getMonth() + 1).padStart(2, "0"),
-    String(selected.getDate()).padStart(2, "0"),
+  // Sync when controlled value changes externally
+  const controlled = value ? new Date(value + "T12:00:00") : null;
+  const displayed = controlled ?? selected;
+
+  const toIso = (d: Date) => [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
   ].join("-");
+
+  function handleSelect(date: Date | undefined) {
+    if (!date) return;
+    setSelected(date);
+    onSelect?.(toIso(date));
+  }
 
   return (
     <div>
-      <input type="hidden" name={name} value={isoValue} />
+      <input type="hidden" name={name} value={toIso(displayed)} />
       <DayPicker
         mode="single"
-        selected={selected}
-        onSelect={(date) => { if (date) setSelected(date); }}
+        selected={displayed}
+        onSelect={handleSelect}
         locale={fr}
         components={{
           PreviousMonthButton: (props) => (

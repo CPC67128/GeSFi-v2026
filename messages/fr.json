@@ -19,6 +19,8 @@
     "addExpense": "Dépense",
     "addIncome": "Revenu",
     "transfer": "Virement",
+    "deposit": "Dépôt",
+    "revenue": "Revenu",
     "noTransactions": "Aucune transaction pour le moment.",
     "noTransactionsSearch": "Aucune transaction correspondant à \"{query}\"."
   },
@@ -53,6 +55,36 @@
   "TransferPage": {
     "title": "Virement",
     "back": "Retour"
+  },
+  "DepositPage": {
+    "title": "Dépôt"
+  },
+  "DepositForm": {
+    "sourceLabel": "Compte source",
+    "debitDateLabel": "Date de débit",
+    "effectiveDateLabel": "Date effective sur le placement",
+    "designationLabel": "Désignation",
+    "designationDefault": "Versement vers placement",
+    "amountLabel": "Montant",
+    "amountInvestedLabel": "Versement effectif",
+    "amountInvestedPlaceholder": "Identique au montant si vide",
+    "confirmedLabel": "Marquer comme confirmé",
+    "submitIdle": "Enregistrer",
+    "submitPending": "Enregistrement…"
+  },
+  "RevenuePage": {
+    "title": "Revenu de placement"
+  },
+  "RevenueForm": {
+    "targetLabel": "Compte cible",
+    "effectiveDateLabel": "Date effective sur le placement",
+    "arrivalDateLabel": "Date d'arrivée sur le compte",
+    "designationLabel": "Désignation",
+    "designationDefault": "Revenu de placement",
+    "amountLabel": "Montant",
+    "confirmedLabel": "Marquer comme confirmé",
+    "submitIdle": "Enregistrer",
+    "submitPending": "Enregistrement…"
   },
   "TransferForm": {
     "fromLabel": "De",
