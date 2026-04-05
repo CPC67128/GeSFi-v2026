@@ -18,9 +18,11 @@ export type Transaction = {
 export function TransactionTile({
   transaction,
   accountId,
+  showConfirmation,
 }: {
   transaction: Transaction;
   accountId: string;
+  showConfirmation: boolean;
 }) {
   const isCredit = transaction.record_type === 10 || transaction.record_type === 12;
 
@@ -56,11 +58,13 @@ export function TransactionTile({
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{formattedDate} · {transaction.userName}</span>
         <div className="flex items-center gap-1">
-          <ConfirmButton
-            recordGroupId={transaction.record_group_id}
-            accountId={accountId}
-            confirmed={transaction.confirmed}
-          />
+          {showConfirmation && (
+            <ConfirmButton
+              recordGroupId={transaction.record_group_id}
+              accountId={accountId}
+              confirmed={transaction.confirmed}
+            />
+          )}
           <DeleteButton
             recordGroupId={transaction.record_group_id}
             accountId={accountId}

@@ -19,9 +19,11 @@ type Props = {
 async function TransactionList({
   accountId,
   query,
+  showConfirmation,
 }: {
   accountId: string;
   query: string;
+  showConfirmation: boolean;
 }) {
   // CAST(record_type AS UNSIGNED) bypasses the mariadb driver's TINYINT(1)→boolean coercion
   type RawRecord = {
@@ -130,7 +132,7 @@ async function TransactionList({
             </h3>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {txs.map((tx) => (
-                <TransactionTile key={tx.record_group_id} transaction={tx} accountId={accountId} />
+                <TransactionTile key={tx.record_group_id} transaction={tx} accountId={accountId} showConfirmation={showConfirmation} />
               ))}
             </div>
           </section>
@@ -153,6 +155,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
   if (!account) notFound();
 
   const isPlacement = account.type === 10;
+  const showConfirmation = Number(account.record_confirmation) !== 0;
 
   const [balanceRow, lastValuation] = await Promise.all([
     isPlacement
@@ -214,12 +217,14 @@ export default async function AccountPage({ params, searchParams }: Props) {
                   {balance.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Confirmé</p>
-                <p className="font-semibold tabular-nums">
-                  {confirmed.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
-                </p>
-              </div>
+              {showConfirmation && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Confirmé</p>
+                  <p className="font-semibold tabular-nums">
+                    {confirmed.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -266,7 +271,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
             </div>
           }
         >
-          <TransactionList accountId={accountId} query={query} />
+          <TransactionList accountId={accountId} query={query} showConfirmation={showConfirmation} />
         </Suspense>
       )}
     </div>
