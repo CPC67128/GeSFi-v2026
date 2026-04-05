@@ -44,8 +44,12 @@ TypeScript rewrite of a PHP personal finance app. The MariaDB database is **not 
 | 20 | Transfer out (debit side) | red − |
 | 22 | Expense / debit | red − |
 | 30 | Valorisation snapshot (placements only) | — |
+| 40 | Placement revenue | — (income field carries the amount; `amount` = 0) |
 
 Transfer always creates two records sharing a `record_group_id`: type 20 on the source account, type 10 on the destination.
+
+Placement Dépôt creates type 20 on the source compte (debit date) + type 10 on the placement (effective date, `amount_invested` field).
+Placement Revenu creates type 40 on the placement (`income` = amount, `amount` = 0) + type 12 on the target compte.
 
 ## Account types
 

@@ -57,6 +57,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | 20 | Transfer out (debit side) | red − |
 | 22 | Expense | red − |
 | 30 | Valorisation (placement snapshot) | — |
+| 40 | Placement revenue | — (`income` field carries the amount; `amount` = 0) |
 
 Transfer creates two linked records sharing a `record_group_id`: type 20 on the source account, type 10 on the destination.
 
@@ -84,10 +85,26 @@ Transfer creates two linked records sharing a `record_group_id`: type 20 on the 
 - **Cumulative sub-values** — Versement, Versement effectif, Rachat and Revenu each show a live running total below the row value (SQL window functions, no `CALC_` fields).
 - **Rendement** — computed per row in JS: `(estimated_value + Σ income + Σ withdrawal) / Σ versement − 1`. Estimated value uses the last known valorisation (`record_type = 30`) plus `Σ amount_invested − Σ withdrawal` since that snapshot.
 - **Header** — shows the most recent valorisation value and its date instead of a balance.
+- **Dépôt** — creates type 20 on the source compte courant (debit date) + type 10 on the placement (effective date, `amount_invested` field). Only type-1 accounts owned by the current user are listed as source.
+- **Revenu** — creates type 40 on the placement (`income` = amount, `amount` = 0) + type 12 on the target compte. Effective date is mirrored to arrival date automatically.
 
 ### Sidebar
 - Accounts split into "Comptes" / "Placements" tabs; "Comptes" selected by default.
 - Comptes show live balance; Placements show latest valorisation (`record_type = 30` value).
+
+### Transaction tile tinting
+- `record_type = 10` (transfer in): dark blue background.
+- `record_type = 20` (transfer out): dark red background.
+- Other types: default card background.
+
+### Confirmation per account
+- `bf_account.record_confirmation = 0` hides the confirmed balance in the header and the confirm button on tiles.
+
+### Admin area (`/admin`)
+- Accessible at `/admin`; separate layout with top navigation.
+- **Comptes** — tile grid list + create/edit form. Fields: name, description, type, owner, opening balance, creation date, record_confirmation, marked_as_closed, not_displayed_in_menu.
+- **Catégories** — tile grid grouped by scope (Duo / per-user) + create/edit form. Fields: name, type (Revenu/Dépense), portée (DUO/USER), utilisateur, sort_order, active_from, marked_as_inactive.
+- **Utilisateurs** — tile grid list + create/edit form. Fields: name, email, role (0=Utilisateur/1=Administrateur), password (MD5-hashed, optional on edit).
 
 ## Project structure
 
@@ -100,7 +117,7 @@ src/
           page.tsx          # Account page with transaction tiles
           new/              # Add expense/income form
           transfer/         # Transfer between accounts
-    (admin)/          # Admin area (non-responsive)
+    (admin)/          # Admin area — accounts, categories, users CRUD
     api/
       designations/   # Autocomplete suggestions for designation field
     login/            # Login page
