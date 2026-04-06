@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, LayoutDashboard } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { AccountNav } from "./account-nav";
 import { Separator } from "@/components/ui/separator";
@@ -87,6 +87,13 @@ export async function Sidebar({ className }: Props) {
         <Separator />
 
         <div className="flex flex-col gap-1 p-2">
+          <Link
+            href="/patrimoine"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <LayoutDashboard size={15} />
+            {t("patrimoine")}
+          </Link>
           <Link
             href="/admin"
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"

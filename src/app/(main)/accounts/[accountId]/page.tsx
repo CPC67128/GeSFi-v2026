@@ -4,25 +4,28 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { getTranslations } from "next-intl/server";
 import { SearchBox } from "@/components/layout/search-box";
+import { UnconfirmedFilter } from "@/components/layout/unconfirmed-filter";
 import { TransactionTile } from "@/components/layout/transaction-tile";
 import { PlacementTable } from "@/components/layout/placement-table";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { ArrowLeftRight, TrendingDown, TrendingUp, PiggyBank, Coins, ArrowDownToLine } from "lucide-react";
+import { ArrowLeftRight, TrendingDown, TrendingUp, PiggyBank, Coins, ArrowDownToLine, ChartLine } from "lucide-react";
 
 type Props = {
   params: Promise<{ accountId: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; unconfirmed?: string }>;
 };
 
 async function TransactionList({
   accountId,
   query,
+  unconfirmedOnly,
   showConfirmation,
 }: {
   accountId: string;
   query: string;
+  unconfirmedOnly: boolean;
   showConfirmation: boolean;
 }) {
   // CAST(record_type AS UNSIGNED) bypasses the mariadb driver's TINYINT(1)→boolean coercion
@@ -38,6 +41,11 @@ async function TransactionList({
     user_id: string;
   };
 
+  // Without a search query: show current month + last 4 full months.
+  // With a search query: search across all history (capped at 500).
+  const now = new Date();
+  const windowStart = new Date(now.getFullYear(), now.getMonth() - 4, 1);
+
   const records = await prisma.$queryRaw<RawRecord[]>`
     SELECT record_id, record_group_id, record_date, designation,
            CAST(record_type AS UNSIGNED) AS record_type,
@@ -47,15 +55,18 @@ async function TransactionList({
     FROM bf_record
     WHERE account_id = ${accountId}
       AND marked_as_deleted = 0
-      ${query ? Prisma.sql`AND designation LIKE ${`%${query}%`}` : Prisma.empty}
+      ${query
+        ? Prisma.sql`AND designation LIKE ${`%${query}%`}`
+        : Prisma.sql`AND record_date >= ${windowStart}`}
+      ${unconfirmedOnly ? Prisma.sql`AND CAST(confirmed AS UNSIGNED) = 0` : Prisma.empty}
     ORDER BY record_date DESC
-    LIMIT 200`;
+    ${query ? Prisma.sql`LIMIT 500` : Prisma.empty}`;
 
   if (records.length === 0) {
     const t = await getTranslations("AccountPage");
     return (
       <p className="text-sm text-muted-foreground text-center py-12">
-        {query ? t("noTransactionsSearch", { query }) : t("noTransactions")}
+        {query ? t("noTransactionsSearch", { query }) : unconfirmedOnly ? t("noUnconfirmed") : t("noTransactions")}
       </p>
     );
   }
@@ -144,7 +155,8 @@ async function TransactionList({
 
 export default async function AccountPage({ params, searchParams }: Props) {
   const { accountId } = await params;
-  const { q: query = "" } = await searchParams;
+  const { q: query = "", unconfirmed } = await searchParams;
+  const unconfirmedOnly = unconfirmed === "1";
   await auth();
   const t = await getTranslations("AccountPage");
 
@@ -255,6 +267,13 @@ export default async function AccountPage({ params, searchParams }: Props) {
               <ArrowDownToLine size={15} />
               {t("withdrawal")}
             </Link>
+            <Link
+              href={`/accounts/${accountId}/valorisation`}
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+            >
+              <ChartLine size={15} />
+              {t("valorisation")}
+            </Link>
           </>
         ) : (
           <>
@@ -282,6 +301,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
           </>
         )}
         <SearchBox />
+        {!isPlacement && <UnconfirmedFilter />}
       </div>
 
       {/* Transactions */}
@@ -299,7 +319,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
             </div>
           }
         >
-          <TransactionList accountId={accountId} query={query} showConfirmation={showConfirmation} />
+          <TransactionList accountId={accountId} query={query} unconfirmedOnly={unconfirmedOnly} showConfirmation={showConfirmation} />
         </Suspense>
       )}
     </div>

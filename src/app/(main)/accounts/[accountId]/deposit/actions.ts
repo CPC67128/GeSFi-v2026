@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
 export async function createDeposit(
@@ -26,10 +27,10 @@ export async function createDeposit(
   if (!effectiveDateStr) return "La date effective est obligatoire.";
   if (!designation) return "Le libellé est obligatoire.";
 
-  const amount = parseFloat(amountStr.replace(",", "."));
+  const amount = parseFloat(amountStr.replace(/\s/g, "").replace(",", "."));
   if (!amount || amount <= 0) return "Le montant doit être supérieur à zéro.";
 
-  const amountInvested = amountInvestedStr.trim() !== "" ? parseFloat(amountInvestedStr.replace(",", ".")) : amount;
+  const amountInvested = amountInvestedStr.trim() !== "" ? parseFloat(amountInvestedStr.replace(/\s/g, "").replace(",", ".")) : amount;
 
   // Resolve user_id for the source account
   const sourceAccount = await prisma.bf_account.findUnique({
@@ -90,5 +91,6 @@ export async function createDeposit(
     ],
   });
 
+  revalidatePath("/", "layout");
   redirect(`/accounts/${placementAccountId}`);
 }

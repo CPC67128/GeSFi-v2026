@@ -8,6 +8,7 @@
   },
   "Sidebar": {
     "accountsHeading": "Comptes",
+    "patrimoine": "Patrimoine",
     "administration": "Administration",
     "signOut": "Déconnexion"
   },
@@ -22,8 +23,10 @@
     "deposit": "Dépôt",
     "revenue": "Revenu",
     "withdrawal": "Retrait",
+    "valorisation": "Valorisation",
     "noTransactions": "Aucune transaction pour le moment.",
-    "noTransactionsSearch": "Aucune transaction correspondant à \"{query}\"."
+    "noTransactionsSearch": "Aucune transaction correspondant à \"{query}\".",
+    "noUnconfirmed": "Aucune transaction non confirmée."
   },
   "SearchBox": {
     "placeholder": "Rechercher des transactions…"
@@ -82,6 +85,18 @@
     "arrivalDateLabel": "Date d'arrivée sur le compte",
     "designationLabel": "Désignation",
     "designationDefault": "Revenu de placement",
+    "amountLabel": "Montant",
+    "confirmedLabel": "Marquer comme confirmé",
+    "submitIdle": "Enregistrer",
+    "submitPending": "Enregistrement…"
+  },
+  "ValorisationPage": {
+    "title": "Valorisation"
+  },
+  "ValorisationForm": {
+    "dateLabel": "Date",
+    "designationLabel": "Désignation",
+    "designationDefault": "Valorisation",
     "amountLabel": "Montant",
     "confirmedLabel": "Marquer comme confirmé",
     "submitIdle": "Enregistrer",

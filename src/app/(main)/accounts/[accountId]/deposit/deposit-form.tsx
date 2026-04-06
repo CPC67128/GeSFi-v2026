@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createDeposit } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export function DepositForm({ placementAccountId, accounts }: Props) {
   const [error, formAction, pending] = useActionState(action, undefined);
 
   const today = new Date().toISOString().split("T")[0];
+  const [effectiveDate, setEffectiveDate] = useState(today);
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -53,11 +54,11 @@ export function DepositForm({ placementAccountId, accounts }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>{t("debitDateLabel")}</Label>
-          <DatePicker name="debit_date" defaultValue={today} />
+          <DatePicker name="debit_date" defaultValue={today} onSelect={setEffectiveDate} />
         </div>
         <div className="space-y-2">
           <Label>{t("effectiveDateLabel")}</Label>
-          <DatePicker name="effective_date" defaultValue={today} />
+          <DatePicker name="effective_date" value={effectiveDate} onSelect={setEffectiveDate} />
         </div>
       </div>
 

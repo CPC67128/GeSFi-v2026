@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
 export async function createWithdrawal(
@@ -25,7 +26,7 @@ export async function createWithdrawal(
   if (!arrivalDateStr) return "La date d'arrivée est obligatoire.";
   if (!designation) return "La désignation est obligatoire.";
 
-  const amount = parseFloat(amountStr.replace(",", "."));
+  const amount = parseFloat(amountStr.replace(/\s/g, "").replace(",", "."));
   if (!amount || amount <= 0) return "Le montant doit être supérieur à zéro.";
 
   const debitDate = new Date(debitDateStr);
@@ -80,5 +81,6 @@ export async function createWithdrawal(
     ],
   });
 
+  revalidatePath("/", "layout");
   redirect(`/accounts/${placementAccountId}`);
 }
