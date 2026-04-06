@@ -17,7 +17,7 @@ The existing MariaDB database is kept unchanged so the PHP app can continue runn
 
 ## Getting Started
 
-Copy `.env.example` to `.env.local` and fill in the database credentials:
+Create `.env.local` at the project root with the following variables:
 
 ```
 DB_HOST=
@@ -26,7 +26,8 @@ DB_USER=
 DB_PASSWORD=
 DB_NAME=
 DATABASE_URL=mysql://user:password@host:3306/dbname
-NEXTAUTH_SECRET=
+AUTH_SECRET=
+AUTH_URL=http://localhost:3000
 ```
 
 Run the development server:
@@ -36,6 +37,26 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Deployment
+
+The project uses a GitHub Actions self-hosted runner (`.github/workflows/deploy.yml`).
+The workflow runs on every push to `main`: install → generate Prisma client → build → restart systemd service.
+
+Since `actions/checkout` wipes the work directory on every run, `.env.local` is **not** kept in the repo.
+It must be placed at `/home/github-runner/.env.local` on the server — the workflow copies it into place before the build:
+
+```yaml
+- name: Restore env
+  run: cp /home/github-runner/.env.local .env.local
+```
+
+Required variables on the server (same as above, with production values):
+```
+DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME / DATABASE_URL
+AUTH_SECRET   # random secret, e.g. openssl rand -hex 32
+AUTH_URL      # canonical URL of the deployed site, e.g. https://gesfi.example.com
+```
 
 ## Key architectural notes
 

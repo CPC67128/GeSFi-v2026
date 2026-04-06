@@ -69,3 +69,8 @@ Placement Revenu creates type 40 on the placement (`income` = amount, `amount` =
 - Credentials provider with MD5 password hashing (`createHash("md5")`).
 - Session carries `id`, `name`, `email`, `role` from `bf_user`.
 - Dark theme forced via `dark` class on `<html>` in `src/app/layout.tsx`.
+- Requires `AUTH_SECRET` and `AUTH_URL` env vars at runtime (Auth.js v5). On the self-hosted runner, `.env.local` is stored at `/home/github-runner/.env.local` and copied into the work directory by the deploy workflow.
+
+## Deployment
+- Self-hosted GitHub Actions runner. Workflow: checkout → `cp /home/github-runner/.env.local .env.local` → `npm ci` → `npx prisma generate` → `npm run build` → `sudo systemctl restart gesfi`.
+- `.env.local` is never committed; it lives permanently at `/home/github-runner/.env.local` on the server.
