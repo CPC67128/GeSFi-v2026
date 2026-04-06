@@ -21,6 +21,7 @@
     "transfer": "Virement",
     "deposit": "Dépôt",
     "revenue": "Revenu",
+    "withdrawal": "Retrait",
     "noTransactions": "Aucune transaction pour le moment.",
     "noTransactionsSearch": "Aucune transaction correspondant à \"{query}\"."
   },
@@ -82,6 +83,20 @@
     "designationLabel": "Désignation",
     "designationDefault": "Revenu de placement",
     "amountLabel": "Montant",
+    "confirmedLabel": "Marquer comme confirmé",
+    "submitIdle": "Enregistrer",
+    "submitPending": "Enregistrement…"
+  },
+  "WithdrawalPage": {
+    "title": "Retrait depuis placement"
+  },
+  "WithdrawalForm": {
+    "targetLabel": "Compte cible",
+    "debitDateLabel": "Date de débit sur le placement",
+    "arrivalDateLabel": "Date d'arrivée sur le compte",
+    "designationLabel": "Désignation",
+    "designationDefault": "Retrait depuis placement",
+    "amountLabel": "Montant désinvesti",
     "confirmedLabel": "Marquer comme confirmé",
     "submitIdle": "Enregistrer",
     "submitPending": "Enregistrement…"

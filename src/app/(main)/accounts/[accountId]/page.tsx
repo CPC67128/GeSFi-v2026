@@ -9,7 +9,7 @@ import { PlacementTable } from "@/components/layout/placement-table";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { ArrowLeftRight, TrendingDown, TrendingUp, PiggyBank, Coins } from "lucide-react";
+import { ArrowLeftRight, TrendingDown, TrendingUp, PiggyBank, Coins, ArrowDownToLine } from "lucide-react";
 
 type Props = {
   params: Promise<{ accountId: string }>;
@@ -247,6 +247,13 @@ export default async function AccountPage({ params, searchParams }: Props) {
             >
               <Coins size={15} />
               {t("revenue")}
+            </Link>
+            <Link
+              href={`/accounts/${accountId}/withdrawal`}
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+            >
+              <ArrowDownToLine size={15} />
+              {t("withdrawal")}
             </Link>
           </>
         ) : (

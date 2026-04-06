@@ -11,12 +11,21 @@ export const getAccountsForUser = cache(async (userId: string) => {
 
   const accounts = await prisma.bf_account.findMany({
     where: {
-      OR: [
-        { owner_user_id: userId },
-        { account_id: { in: prefAccountIds } },
+      AND: [
+        {
+          OR: [
+            { owner_user_id: userId },
+            { account_id: { in: prefAccountIds } },
+          ],
+        },
+        { marked_as_closed: false },
+        {
+          OR: [
+            { type: 10 },
+            { not_displayed_in_menu: false },
+          ],
+        },
       ],
-      marked_as_closed: false,
-      not_displayed_in_menu: false,
     },
   });
 
