@@ -248,28 +248,28 @@ export default async function AccountPage({ params, searchParams }: Props) {
           <>
             <Link
               href={`/accounts/${accountId}/deposit`}
-              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
             >
               <PiggyBank size={15} />
               {t("deposit")}
             </Link>
             <Link
               href={`/accounts/${accountId}/revenue`}
-              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
             >
               <Coins size={15} />
               {t("revenue")}
             </Link>
             <Link
               href={`/accounts/${accountId}/withdrawal`}
-              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
             >
               <ArrowDownToLine size={15} />
               {t("withdrawal")}
             </Link>
             <Link
               href={`/accounts/${accountId}/valorisation`}
-              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
             >
               <ChartLine size={15} />
               {t("valorisation")}
@@ -279,21 +279,21 @@ export default async function AccountPage({ params, searchParams }: Props) {
           <>
             <Link
               href={`/accounts/${accountId}/new?mode=expense`}
-              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-sm font-medium"
             >
               <TrendingDown size={15} />
               {t("addExpense")}
             </Link>
             <Link
               href={`/accounts/${accountId}/new?mode=income`}
-              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-1.5 shrink-0 h-9 px-3 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-sm font-medium"
             >
               <TrendingUp size={15} />
               {t("addIncome")}
             </Link>
             <Link
               href={`/accounts/${accountId}/transfer`}
-              className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-md border border-input bg-background hover:bg-accent transition-colors"
             >
               <ArrowLeftRight size={16} />
               <span className="sr-only">{t("transfer")}</span>

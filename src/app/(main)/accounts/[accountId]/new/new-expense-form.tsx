@@ -96,7 +96,7 @@ export function NewExpenseForm({ accountId, categories, initialMode = "expense" 
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors",
             mode === "expense"
-              ? "bg-destructive text-destructive-foreground"
+              ? "bg-red-100 text-red-700"
               : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
           )}
         >
@@ -109,7 +109,7 @@ export function NewExpenseForm({ accountId, categories, initialMode = "expense" 
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-l",
             mode === "income"
-              ? "bg-green-600 text-white"
+              ? "bg-blue-100 text-blue-700"
               : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
           )}
         >

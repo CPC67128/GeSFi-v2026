@@ -40,9 +40,9 @@ export function TransactionTile({
   return (
     <div className={`flex flex-col rounded-lg border p-4 gap-2 transition-colors ${
       transaction.record_type === 10
-        ? "bg-blue-950/40 hover:bg-blue-950/60 border-blue-900/40"
+        ? "bg-blue-50 hover:bg-blue-100 border-blue-200"
         : transaction.record_type === 20
-        ? "bg-red-950/40 hover:bg-red-950/60 border-red-900/40"
+        ? "bg-red-50 hover:bg-red-100 border-red-200"
         : "bg-card hover:bg-accent/50"
     }`}>
       {/* Designation + total */}
