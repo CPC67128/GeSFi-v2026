@@ -233,6 +233,131 @@ export default async function BalancePage({ searchParams }: Props) {
     partnerId ? getRevenusDuo(partnerId) : "0",
   ]);
 
+  // Helper: type 20 withdrawals from duo accounts where the matched credit (type 10) went to user's private account
+  async function getRetraitsDuo(forUserId: string): Promise<string> {
+    const rows = await prisma.$queryRaw<{ total: string }[]>`
+      SELECT COALESCE(SUM(r.amount), 0) AS total
+      FROM bf_record r
+      WHERE r.record_type       = 20
+        AND r.marked_as_deleted = 0
+        AND r.record_date      <= CURDATE()
+        AND r.account_id IN (
+          SELECT account_id FROM bf_account
+          WHERE type IN (2, 3)
+            AND (owner_user_id = ${forUserId} OR type IN (3, 12))
+        )
+        AND (
+          r.record_group_id IN (
+            SELECT DISTINCT record_group_id FROM bf_record
+            WHERE record_type = 10
+              AND (
+                account_id IN (
+                  SELECT account_id FROM bf_account
+                  WHERE type NOT IN (2, 3) AND owner_user_id = ${forUserId}
+                )
+                OR (account_id = '' AND user_id = ${forUserId})
+              )
+            UNION
+            SELECT DISTINCT record_group_id FROM bf_record
+            WHERE account_id IN (
+              SELECT account_id FROM bf_account
+              WHERE type NOT IN (2, 3) AND owner_user_id = ${forUserId}
+            )
+              AND record_type = 0
+              AND amount IS NOT NULL
+              AND amount > 0
+          )
+          OR (r.record_group_id = '' AND r.user_id = ${forUserId})
+        )`;
+    return rows[0]?.total ?? "0";
+  }
+
+  const [retraitsDuoP1, retraitsDuoP2] = await Promise.all([
+    getRetraitsDuo(userId),
+    partnerId ? getRetraitsDuo(partnerId) : "0",
+  ]);
+
+  // Helper: charge-weighted share of record_type=22 expenses on duo accounts for a given user
+  async function getDepensesDuo(forUserId: string): Promise<string> {
+    const rows = await prisma.$queryRaw<{ total: string }[]>`
+      SELECT COALESCE(SUM(
+        CASE
+          WHEN r.user_id = ${forUserId} THEN r.amount * r.charge / 100
+          ELSE r.amount * (100 - r.charge) / 100
+        END
+      ), 0) AS total
+      FROM bf_record r
+      WHERE r.record_type       = 22
+        AND r.marked_as_deleted = 0
+        AND r.record_date      <= CURDATE()
+        AND r.account_id IN (
+          SELECT account_id FROM bf_account
+          WHERE type IN (2, 3)
+            AND (owner_user_id = ${userId} OR type IN (3, 12))
+        )`;
+    return rows[0]?.total ?? "0";
+  }
+
+  const [depensesDuoP1, depensesDuoP2] = await Promise.all([
+    getDepensesDuo(userId),
+    partnerId ? getDepensesDuo(partnerId) : "0",
+  ]);
+
+  // Helper: total repayment transferred from one user's private account to the other's
+  async function getRemboursement(fromUserId: string, toUserId: string): Promise<string> {
+    const rows = await prisma.$queryRaw<{ total: string }[]>`
+      SELECT COALESCE(SUM(r.amount), 0) AS total
+      FROM bf_record r
+      WHERE r.record_type       = 20
+        AND r.marked_as_deleted = 0
+        AND r.record_date      <= CURDATE()
+        AND r.account_id NOT IN (
+          SELECT account_id FROM bf_account WHERE type IN (2, 3, 5, 12)
+        )
+        AND r.user_id = ${fromUserId}
+        AND r.record_group_id IN (
+          SELECT record_group_id FROM bf_record
+          WHERE record_type       = 10
+            AND record_date      <= CURDATE()
+            AND account_id NOT IN (
+              SELECT account_id FROM bf_account WHERE type IN (2, 3, 5, 12)
+            )
+            AND user_id = ${toUserId}
+        )`;
+    return rows[0]?.total ?? "0";
+  }
+
+  // P2→P1 and P1→P2 repayments in parallel
+  const [remboursementP2ToP1, remboursementP1ToP2] = await Promise.all([
+    partnerId ? getRemboursement(partnerId, userId) : "0",
+    partnerId ? getRemboursement(userId, partnerId) : "0",
+  ]);
+
+  // Helper: record_type=12 income from DUO categories deposited into a user's private account (type=1)
+  async function getRevenuDuoPrive(forUserId: string): Promise<string> {
+    const rows = await prisma.$queryRaw<{ total: string }[]>`
+      SELECT COALESCE(SUM(r.amount), 0) AS total
+      FROM bf_record r
+      WHERE r.record_type       = 12
+        AND r.marked_as_deleted = 0
+        AND r.record_date      <= CURDATE()
+        AND r.category_id IN (
+          SELECT category_id FROM bf_category WHERE link_type = 'DUO'
+        )
+        AND r.account_id IN (
+          SELECT account_id FROM bf_account
+          WHERE marked_as_closed = 0
+            AND type = 1
+            AND owner_user_id = ${forUserId}
+        )`;
+    return rows[0]?.total ?? "0";
+  }
+
+  const [revenuDuoPriveP1, revenuDuoPriveP2] = await Promise.all([
+    getRevenuDuoPrive(userId),
+    partnerId ? getRevenuDuoPrive(partnerId) : "0",
+  ]);
+
   const p1 = partner1;
   const p2 = partner2;
   const fmtEur = (v: string | number) =>
@@ -347,6 +472,76 @@ export default async function BalancePage({ searchParams }: Props) {
               <td className="px-4 py-2 text-right tabular-nums">{fmtEur(revenusDuoP1)}</td>
               <td className="px-4 py-2 text-right tabular-nums">{fmtEur(revenusDuoP2)}</td>
               {/* Dépenses: not applicable */}
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+            </tr>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Retraits depuis comptes duo</td>
+              {/* Apports: split by who made the withdrawal — shown negative */}
+              <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(-(Number(retraitsDuoP1) + Number(retraitsDuoP2)))}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(-Number(retraitsDuoP1))}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(-Number(retraitsDuoP2))}</td>
+              {/* Dépenses: not applicable */}
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+            </tr>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Dépenses depuis comptes duo</td>
+              {/* Apports: not applicable */}
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              {/* Dépenses: charge-weighted per partner */}
+              <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(Number(depensesDuoP1) + Number(depensesDuoP2))}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(depensesDuoP1)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(depensesDuoP2)}</td>
+            </tr>
+            {/* P2 → P1: P2 contributed (positive), P1 offset (negative) */}
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Remboursement de {p2} à {p1}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(-Number(remboursementP2ToP1))}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(remboursementP2ToP1)}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+            </tr>
+            {/* P1 → P2: P1 contributed (positive), P2 offset (negative) */}
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Remboursement de {p1} à {p2}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(remboursementP1ToP2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(-Number(remboursementP1ToP2))}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+            </tr>
+            {/* Revenus duo versés sur compte privé — group header + 2 sub-rows */}
+            <tr className="border-b bg-muted/20">
+              <td className="px-4 py-2 font-medium">Revenus duo versés sur compte privé</td>
+              <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(Number(revenuDuoPriveP1) + Number(revenuDuoPriveP2))}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur((Number(revenuDuoPriveP1) + Number(revenuDuoPriveP2)) / 2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur((Number(revenuDuoPriveP1) + Number(revenuDuoPriveP2)) / 2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+            </tr>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2 pl-8 text-muted-foreground">/ versés chez {p1}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(-Number(revenuDuoPriveP1))}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+            </tr>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2 pl-8 text-muted-foreground">/ versés chez {p2}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(-Number(revenuDuoPriveP2))}</td>
               <td className="px-4 py-2 text-right tabular-nums text-muted-foreground border-l">—</td>
               <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
               <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
