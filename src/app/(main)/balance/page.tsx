@@ -358,6 +358,68 @@ export default async function BalancePage({ searchParams }: Props) {
     partnerId ? getRevenuDuoPrive(partnerId) : "0",
   ]);
 
+  // Duo account balances (live sum from records)
+  const duoAccounts = await prisma.$queryRaw<{ account_id: string; name: string; balance: string }[]>`
+    SELECT a.account_id, a.name,
+      COALESCE(a.opening_balance + SUM(
+        CASE
+          WHEN r.record_type IN (10, 12) THEN r.amount
+          WHEN r.record_type IN (20, 22) THEN -r.amount
+          ELSE 0
+        END
+      ), a.opening_balance) AS balance
+    FROM bf_account a
+    LEFT JOIN bf_record r
+      ON r.account_id = a.account_id AND r.marked_as_deleted = 0
+    WHERE a.type = 3
+      AND a.marked_as_closed = 0
+    GROUP BY a.account_id, a.name, a.opening_balance
+    ORDER BY a.name`;
+
+  const revenuDuoPriveTotal = Number(revenuDuoPriveP1) + Number(revenuDuoPriveP2);
+
+  const totalApportsP1 =
+    Number(duoExpensesP1Row.total) +
+    Number(ownExpensesP1Row.total) +
+    Number(duoExpensesP1ToP2Row.total) +
+    Number(versementsDuoP1) +
+    Number(revenusDuoP1) +
+    -Number(retraitsDuoP1) +
+    -Number(remboursementP2ToP1) +
+    Number(remboursementP1ToP2) +
+    revenuDuoPriveTotal / 2 +
+    -Number(revenuDuoPriveP1);
+
+  const totalApportsP2 =
+    Number(duoExpensesP2Row.total) +
+    Number(duoExpensesP2ToP1Row.total) +
+    Number(ownExpensesP2Row.total) +
+    Number(versementsDuoP2) +
+    Number(revenusDuoP2) +
+    -Number(retraitsDuoP2) +
+    Number(remboursementP2ToP1) +
+    -Number(remboursementP1ToP2) +
+    revenuDuoPriveTotal / 2 +
+    -Number(revenuDuoPriveP2);
+
+  const totalDepensesP1 =
+    Number(duoExpensesP1Row.p1) +
+    Number(ownExpensesP1Row.p1) +
+    Number(duoExpensesP1ToP2Row.p1) +
+    Number(duoExpensesP2Row.p1) +
+    Number(duoExpensesP2ToP1Row.p1) +
+    Number(ownExpensesP2Row.p1) +
+    Number(depensesDuoP1);
+
+  const totalDepensesP2 =
+    Number(duoExpensesP1Row.p2) +
+    Number(ownExpensesP1Row.p2) +
+    Number(duoExpensesP1ToP2Row.p2) +
+    Number(duoExpensesP2Row.p2) +
+    Number(duoExpensesP2ToP1Row.p2) +
+    Number(ownExpensesP2Row.p2) +
+    Number(depensesDuoP2);
+
   const p1 = partner1;
   const p2 = partner2;
   const fmtEur = (v: string | number) =>
@@ -546,9 +608,85 @@ export default async function BalancePage({ searchParams }: Props) {
               <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
               <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">—</td>
             </tr>
+            <tr className="border-t-2 bg-muted/40 font-semibold">
+              <td className="px-4 py-2">Total</td>
+              <td className="px-4 py-2 text-right tabular-nums border-l">{fmtEur(totalApportsP1 + totalApportsP2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(totalApportsP1)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(totalApportsP2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums border-l">{fmtEur(totalDepensesP1 + totalDepensesP2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(totalDepensesP1)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(totalDepensesP2)}</td>
+            </tr>
+            <tr className="border-t bg-muted/20 font-semibold">
+              <td className="px-4 py-2">Apports - Dépenses</td>
+              <td className="px-4 py-2 text-right tabular-nums border-l">{fmtEur((totalApportsP1 + totalApportsP2) - (totalDepensesP1 + totalDepensesP2))}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(totalApportsP1 - totalDepensesP1)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{fmtEur(totalApportsP2 - totalDepensesP2)}</td>
+              <td className="px-4 py-2 text-muted-foreground border-l">—</td>
+              <td className="px-4 py-2 text-muted-foreground">—</td>
+              <td className="px-4 py-2 text-muted-foreground">—</td>
+            </tr>
           </tbody>
         </table>
       </div>
+
+      {/* Situation comptes duo */}
+      <h2 className="text-xl font-bold">Situation comptes duo</h2>
+      <div className="flex flex-wrap gap-6 items-start">
+      <div className="overflow-x-auto rounded-lg border w-fit">
+        <table className="text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="px-4 py-2 text-left font-semibold">Désignation</th>
+              <th className="px-4 py-2 text-right font-semibold border-l">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Total versements</td>
+              <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(Number(versementsDuoP1) + Number(versementsDuoP2) + Number(revenusDuoP1) + Number(revenusDuoP2))}</td>
+            </tr>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Total retraits</td>
+              <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(-(Number(retraitsDuoP1) + Number(retraitsDuoP2)))}</td>
+            </tr>
+            <tr className="border-b hover:bg-muted/30">
+              <td className="px-4 py-2">Total dépenses</td>
+              <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(-(Number(depensesDuoP1) + Number(depensesDuoP2)))}</td>
+            </tr>
+            <tr className="border-t-2 bg-muted/40 font-semibold">
+              <td className="px-4 py-2">Total</td>
+              <td className="px-4 py-2 text-right tabular-nums border-l">{fmtEur(Number(versementsDuoP1) + Number(versementsDuoP2) + Number(revenusDuoP1) + Number(revenusDuoP2) - Number(retraitsDuoP1) - Number(retraitsDuoP2) - Number(depensesDuoP1) - Number(depensesDuoP2))}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Balances des comptes duo */}
+      <div className="overflow-x-auto rounded-lg border w-fit">
+        <table className="text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="px-4 py-2 text-left font-semibold">Compte</th>
+              <th className="px-4 py-2 text-right font-semibold border-l">Solde</th>
+            </tr>
+          </thead>
+          <tbody>
+            {duoAccounts.map((a) => (
+              <tr key={a.account_id} className="border-b hover:bg-muted/30">
+                <td className="px-4 py-2">{a.name}</td>
+                <td className="px-4 py-2 text-right tabular-nums font-medium border-l">{fmtEur(a.balance)}</td>
+              </tr>
+            ))}
+            <tr className="border-t-2 bg-muted/40 font-semibold">
+              <td className="px-4 py-2">Total</td>
+              <td className="px-4 py-2 text-right tabular-nums border-l">{fmtEur(duoAccounts.reduce((sum, a) => sum + Number(a.balance), 0))}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      </div>{/* end flex */}
     </div>
   );
 }
