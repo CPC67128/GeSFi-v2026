@@ -1,0 +1,177 @@
+import { Fragment } from "react";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+
+function fmt(v: number): string {
+  if (v === 0) return "";
+  return v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtOrDash(v: number): string {
+  if (v === 0) return "—";
+  return v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const PERIODS = [
+  { key: "3",  label: "3 mois",  months: 3 },
+  { key: "6",  label: "6 mois",  months: 6 },
+  { key: "12", label: "12 mois", months: 12 },
+];
+
+export async function PriveGlissantTable() {
+  const session = await auth();
+  const userId = session!.user.id;
+
+  const now = new Date();
+  const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const start12 = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+
+  const categories = await prisma.bf_category.findMany({
+    where: { link_type: "USER", link_id: userId, marked_as_inactive: { not: 1 } },
+    orderBy: [{ type: "asc" }, { sort_order: "asc" }],
+    select: { category_id: true, category: true, type: true },
+  });
+
+  const incomeCategories = categories.filter((c) => c.type === 0);
+  const expenseCategories = categories.filter((c) => c.type === 1);
+
+  type MonthlyRow = { category_id: string; year: number; month: number; total: string };
+  const rows = await prisma.$queryRaw<MonthlyRow[]>`
+    SELECT r.category_id,
+           YEAR(r.record_date)                    AS year,
+           MONTH(r.record_date)                   AS month,
+           CAST(SUM(r.amount) AS DECIMAL(10, 2))  AS total
+    FROM bf_record r
+    WHERE r.user_id           = ${userId}
+      AND r.marked_as_deleted = 0
+      AND r.record_date      <= CURDATE()
+      AND r.record_date      >= ${start12}
+      AND r.record_date       < ${startOfCurrentMonth}
+      AND CAST(r.record_type AS UNSIGNED) IN (12, 22)
+    GROUP BY r.category_id, YEAR(r.record_date), MONTH(r.record_date)`;
+
+  // matrix: categoryId -> "YYYY-MM" -> amount
+  const matrix = new Map<string, Map<string, number>>();
+  for (const row of rows) {
+    const key = `${Number(row.year)}-${String(Number(row.month)).padStart(2, "0")}`;
+    if (!matrix.has(row.category_id)) matrix.set(row.category_id, new Map());
+    matrix.get(row.category_id)!.set(key, Number(row.total));
+  }
+
+  // Month keys for each period (most recent N completed months)
+  function periodMonthKeys(nMonths: number): string[] {
+    const keys: string[] = [];
+    for (let i = 1; i <= nMonths; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return keys;
+  }
+
+  const periodKeys = {
+    "3":  periodMonthKeys(3),
+    "6":  periodMonthKeys(6),
+    "12": periodMonthKeys(12),
+  };
+
+  function catPeriodTotal(catId: string, pKey: string): number {
+    const monthMap = matrix.get(catId);
+    if (!monthMap) return 0;
+    return (periodKeys[pKey as keyof typeof periodKeys]).reduce((s, k) => s + (monthMap.get(k) ?? 0), 0);
+  }
+
+  function groupPeriodTotal(catIds: string[], pKey: string): number {
+    return catIds.reduce((s, id) => s + catPeriodTotal(id, pKey), 0);
+  }
+
+  const incomeCats  = incomeCategories.filter((c) => matrix.has(c.category_id));
+  const expenseCats = expenseCategories.filter((c) => matrix.has(c.category_id));
+  const incomeCatIds  = incomeCats.map((c) => c.category_id);
+  const expenseCatIds = expenseCats.map((c) => c.category_id);
+
+  const thClass  = "px-3 py-2 text-right text-xs font-semibold whitespace-nowrap";
+  const tdClass  = "px-3 py-1.5 text-right tabular-nums text-xs whitespace-nowrap";
+  const tdLabel  = "px-3 py-1.5 text-sm whitespace-nowrap";
+
+  type PeriodValues = { total: number; avg: number }[];
+
+  function catValues(catId: string): PeriodValues {
+    return PERIODS.map((p) => {
+      const total = catPeriodTotal(catId, p.key);
+      return { total, avg: total / p.months };
+    });
+  }
+
+  function groupValues(catIds: string[], negate = false): PeriodValues {
+    return PERIODS.map((p) => {
+      const total = groupPeriodTotal(catIds, p.key) * (negate ? -1 : 1);
+      return { total, avg: total / p.months };
+    });
+  }
+
+  function balanceValues(): PeriodValues {
+    return PERIODS.map((p) => {
+      const total = groupPeriodTotal(incomeCatIds, p.key) - groupPeriodTotal(expenseCatIds, p.key);
+      return { total, avg: total / p.months };
+    });
+  }
+
+  function TableRow({ label, values, bold, colorSign }: {
+    label: string;
+    values: PeriodValues;
+    bold?: boolean;
+    colorSign?: boolean;
+  }) {
+    const fmtFn = bold ? fmtOrDash : fmt;
+    return (
+      <tr className={`border-b hover:bg-muted/20 ${bold ? "font-semibold bg-muted/50" : ""}`}>
+        <td className={`${tdLabel} ${bold ? "font-semibold" : ""}`}>{label}</td>
+        {values.map((v, i) => {
+          const color = colorSign ? (v.total < 0 ? "text-red-600" : v.total > 0 ? "text-green-600" : "") : "";
+          return (
+            <Fragment key={i}>
+              <td className={`${tdClass} ${color} border-l`}>{fmtFn(v.total)}</td>
+              <td className={`${tdClass} ${color}`}>{fmtFn(v.avg)}</td>
+            </Fragment>
+          );
+        })}
+      </tr>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="text-sm w-full">
+        <thead>
+          <tr className="border-b bg-muted/50">
+            <th className="px-3 py-2 text-left font-semibold" rowSpan={2}>Désignation</th>
+            {PERIODS.map((p) => (
+              <th key={p.key} className={`${thClass} border-l`} colSpan={2}>{p.label}</th>
+            ))}
+          </tr>
+          <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
+            {PERIODS.map((p) => (
+              <Fragment key={p.key}>
+                <th className={`${thClass} border-l`}>Total</th>
+                <th className={thClass}>Moyenne</th>
+              </Fragment>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {incomeCats.map((c) => (
+            <TableRow key={c.category_id} label={c.category} values={catValues(c.category_id)} />
+          ))}
+          <TableRow label="Total revenus" values={groupValues(incomeCatIds)} bold />
+
+          {expenseCats.map((c) => (
+            <TableRow key={c.category_id} label={c.category} values={catValues(c.category_id)} />
+          ))}
+          <TableRow label="Total dépenses" values={groupValues(expenseCatIds, true)} bold />
+
+          <TableRow label="Balance" values={balanceValues()} bold colorSign />
+        </tbody>
+      </table>
+    </div>
+  );
+}

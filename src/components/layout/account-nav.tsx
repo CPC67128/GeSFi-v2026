@@ -1,55 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-type Account = {
+type AccountItem = {
   account_id: string;
   name: string;
   type: number;
   balance: number;
 };
 
+type PartnerSection = {
+  userId: string;
+  name: string;
+  virtualBalance: number;
+  accounts: AccountItem[];
+};
+
 type Tab = "comptes" | "placements";
 
-function AccountList({ accounts }: { accounts: Account[] }) {
-  const params = useParams();
-  const currentId = params.accountId as string | undefined;
+function AccountLink({ href, name, balance, showBalance = true }: { href: string; name: string; balance: number; showBalance?: boolean }) {
+  const pathname = usePathname();
+  const isActive = pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <>
-      {accounts.map((account) => (
-        <Link
-          key={account.account_id}
-          href={`/accounts/${account.account_id}`}
-          className={cn(
-            "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
-            currentId === account.account_id
-              ? "bg-accent text-accent-foreground font-medium"
-              : "text-muted-foreground"
-          )}
-        >
-          <span className="truncate">{account.name}</span>
-          <span className="ml-2 shrink-0 tabular-nums text-xs">
-            {account.balance.toLocaleString("fr-FR", {
-              style: "currency",
-              currency: "EUR",
-            })}
-          </span>
-        </Link>
-      ))}
-    </>
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+        isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground"
+      )}
+    >
+      <span className="truncate">{name}</span>
+      {showBalance && (
+        <span className="ml-2 shrink-0 tabular-nums text-xs">
+          {balance.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+        </span>
+      )}
+    </Link>
   );
 }
 
 export function AccountNav({
-  comptes,
+  duoAccounts,
+  partnerSections,
   placements,
 }: {
-  comptes: Account[];
-  placements: Account[];
+  duoAccounts: AccountItem[];
+  partnerSections: PartnerSection[];
+  placements: AccountItem[];
 }) {
   const [tab, setTab] = useState<Tab>("comptes");
 
@@ -83,9 +84,54 @@ export function AccountNav({
         </button>
       </div>
 
-      {/* Account list */}
       <div className="flex flex-col gap-1 p-2">
-        <AccountList accounts={tab === "comptes" ? comptes : placements} />
+        {tab === "comptes" ? (
+          <>
+            {/* Duo accounts */}
+            {duoAccounts.map((a) => (
+              <AccountLink
+                key={a.account_id}
+                href={`/accounts/${a.account_id}`}
+                name={a.name}
+                balance={a.balance}
+              />
+            ))}
+
+            {/* Per-partner sections */}
+            {partnerSections.map((section, i) => (
+              <div key={section.userId}>
+                {(duoAccounts.length > 0 || i > 0) && (
+                  <div className="my-1 border-t" />
+                )}
+                {/* Virtual "Compte inconnu" */}
+                <AccountLink
+                  href={`/accounts/unknown/${section.userId}`}
+                  name={`${section.name} / Compte inconnu`}
+                  balance={section.virtualBalance}
+                  showBalance={false}
+                />
+                {/* Personal accounts */}
+                {section.accounts.map((a) => (
+                  <AccountLink
+                    key={a.account_id}
+                    href={`/accounts/${a.account_id}`}
+                    name={a.name}
+                    balance={a.balance}
+                  />
+                ))}
+              </div>
+            ))}
+          </>
+        ) : (
+          placements.map((a) => (
+            <AccountLink
+              key={a.account_id}
+              href={`/accounts/${a.account_id}`}
+              name={a.name}
+              balance={a.balance}
+            />
+          ))
+        )}
       </div>
     </nav>
   );

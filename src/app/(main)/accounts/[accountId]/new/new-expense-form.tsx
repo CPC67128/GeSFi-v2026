@@ -57,11 +57,12 @@ function computeAmounts(
   return result;
 }
 
-type Props = { accountId: string; categories: Category[]; initialMode?: Mode };
+type ServerAction = (prevState: string | undefined, formData: FormData) => Promise<string | undefined>;
+type Props = { accountId: string; categories: Category[]; initialMode?: Mode; serverAction?: ServerAction };
 
-export function NewExpenseForm({ accountId, categories, initialMode = "expense" }: Props) {
+export function NewExpenseForm({ accountId, categories, initialMode = "expense", serverAction }: Props) {
   const t = useTranslations("NewExpenseForm");
-  const action = createExpense.bind(null, accountId);
+  const action = serverAction ?? createExpense.bind(null, accountId);
   const [error, formAction, pending] = useActionState(action, undefined);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [formulas, setFormulas] = useState<Record<string, string>>({});
