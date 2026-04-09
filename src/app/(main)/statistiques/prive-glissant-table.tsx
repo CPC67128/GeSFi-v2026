@@ -35,6 +35,7 @@ export async function PriveGlissantTable() {
   const incomeCategories = categories.filter((c) => c.type === 0);
   const expenseCategories = categories.filter((c) => c.type === 1);
 
+  // Private records (by category)
   type MonthlyRow = { category_id: string; year: number; month: number; total: string };
   const rows = await prisma.$queryRaw<MonthlyRow[]>`
     SELECT r.category_id,
@@ -57,6 +58,71 @@ export async function PriveGlissantTable() {
     if (!matrix.has(row.category_id)) matrix.set(row.category_id, new Map());
     matrix.get(row.category_id)!.set(key, Number(row.total));
   }
+
+  // Duo account records — charge-weighted user share + full total, per category per month
+  type DuoMonthlyRow = { category_id: string; record_type: number; year: number; month: number; user_share: string; total: string };
+  const duoRows = await prisma.$queryRaw<DuoMonthlyRow[]>`
+    SELECT r.category_id,
+           CAST(r.record_type AS UNSIGNED)          AS record_type,
+           YEAR(r.record_date)                       AS year,
+           MONTH(r.record_date)                      AS month,
+           CAST(SUM(
+             CASE WHEN r.user_id = ${userId}
+               THEN r.amount * r.charge / 100
+               ELSE r.amount * (100 - r.charge) / 100
+             END
+           ) AS DECIMAL(10, 2))                      AS user_share,
+           CAST(SUM(r.amount) AS DECIMAL(10, 2))     AS total
+    FROM bf_record r
+    WHERE r.marked_as_deleted = 0
+      AND r.record_date      <= CURDATE()
+      AND r.record_date      >= ${start12}
+      AND r.record_date       < ${startOfCurrentMonth}
+      AND CAST(r.record_type AS UNSIGNED) IN (12, 22)
+      AND r.account_id IN (
+        SELECT account_id FROM bf_account WHERE type IN (2, 3)
+      )
+    GROUP BY r.category_id, CAST(r.record_type AS UNSIGNED), YEAR(r.record_date), MONTH(r.record_date)`;
+
+  // Fetch all category names used in duo records
+  const duoCategoryIds = [...new Set(duoRows.map((r) => r.category_id))];
+  const duoCategoryNames = duoCategoryIds.length
+    ? await prisma.bf_category.findMany({
+        where: { category_id: { in: duoCategoryIds } },
+        select: { category_id: true, category: true, type: true, sort_order: true },
+        orderBy: [{ type: "asc" }, { sort_order: "asc" }],
+      })
+    : [];
+  const duoCatNameMap = new Map(duoCategoryNames.map((c) => [c.category_id, c.category]));
+
+  // duoCatMatrix: category_id -> "YYYY-MM" -> { userShare, total }
+  // duoTotalMatrix: record_type -> "YYYY-MM" -> { userShare, total }  (for total rows)
+  type DuoCell = { userShare: number; total: number };
+  const duoCatMatrix = new Map<string, Map<string, DuoCell>>();
+  const duoTotalMatrix = new Map<number, Map<string, DuoCell>>();
+  for (const row of duoRows) {
+    const rt = Number(row.record_type);
+    const key = `${Number(row.year)}-${String(Number(row.month)).padStart(2, "0")}`;
+    const cell: DuoCell = { userShare: Number(row.user_share), total: Number(row.total) };
+
+    // per-category
+    if (!duoCatMatrix.has(row.category_id)) duoCatMatrix.set(row.category_id, new Map());
+    const existing = duoCatMatrix.get(row.category_id)!.get(key);
+    if (existing) { existing.userShare += cell.userShare; existing.total += cell.total; }
+    else duoCatMatrix.get(row.category_id)!.set(key, { ...cell });
+
+    // per-type total
+    if (!duoTotalMatrix.has(rt)) duoTotalMatrix.set(rt, new Map());
+    const existingT = duoTotalMatrix.get(rt)!.get(key);
+    if (existingT) { existingT.userShare += cell.userShare; existingT.total += cell.total; }
+    else duoTotalMatrix.get(rt)!.set(key, { ...cell });
+  }
+
+  // Ordered lists of category_ids per record_type (only those with data)
+  const duoIncomeCatIds  = duoCategoryNames.filter((c) => c.type === 0 && duoCatMatrix.has(c.category_id)).map((c) => c.category_id);
+  const duoExpenseCatIds = duoCategoryNames.filter((c) => c.type === 1 && duoCatMatrix.has(c.category_id)).map((c) => c.category_id);
+  // Also include DUO-type categories (link_type=DUO) that appear in expense/income
+  // They are already included via duoCategoryNames which covers all used category_ids
 
   // Month keys for each period (most recent N completed months)
   function periodMonthKeys(nMonths: number): string[] {
@@ -94,6 +160,7 @@ export async function PriveGlissantTable() {
   const tdLabel  = "px-3 py-1.5 text-sm whitespace-nowrap";
 
   type PeriodValues = { total: number; avg: number }[];
+  type DuoPeriodValues = { userShare: number; total: number; avgShare: number; avgTotal: number }[];
 
   function catValues(catId: string): PeriodValues {
     return PERIODS.map((p) => {
@@ -109,9 +176,50 @@ export async function PriveGlissantTable() {
     });
   }
 
+  function duoValues(recordType: number, negate = false): DuoPeriodValues {
+    const monthMap = duoTotalMatrix.get(recordType);
+    return PERIODS.map((p) => {
+      const keys = periodKeys[p.key as keyof typeof periodKeys];
+      let userShare = 0, total = 0;
+      for (const k of keys) {
+        const cell = monthMap?.get(k);
+        if (cell) { userShare += cell.userShare; total += cell.total; }
+      }
+      const sign = negate ? -1 : 1;
+      return {
+        userShare: userShare * sign,
+        total: total * sign,
+        avgShare: (userShare * sign) / p.months,
+        avgTotal: (total * sign) / p.months,
+      };
+    });
+  }
+
+  function duoCatValues(catId: string, negate = false): DuoPeriodValues {
+    const monthMap = duoCatMatrix.get(catId);
+    return PERIODS.map((p) => {
+      const keys = periodKeys[p.key as keyof typeof periodKeys];
+      let userShare = 0, total = 0;
+      for (const k of keys) {
+        const cell = monthMap?.get(k);
+        if (cell) { userShare += cell.userShare; total += cell.total; }
+      }
+      const sign = negate ? -1 : 1;
+      return {
+        userShare: userShare * sign,
+        total: total * sign,
+        avgShare: (userShare * sign) / p.months,
+        avgTotal: (total * sign) / p.months,
+      };
+    });
+  }
+
   function balanceValues(): PeriodValues {
     return PERIODS.map((p) => {
-      const total = groupPeriodTotal(incomeCatIds, p.key) - groupPeriodTotal(expenseCatIds, p.key);
+      const privateBalance = groupPeriodTotal(incomeCatIds, p.key) - groupPeriodTotal(expenseCatIds, p.key);
+      const duoIncome = duoValues(12)[PERIODS.indexOf(p)].userShare;
+      const duoExpense = duoValues(22, true)[PERIODS.indexOf(p)].userShare;
+      const total = privateBalance + duoIncome + duoExpense;
       return { total, avg: total / p.months };
     });
   }
@@ -139,6 +247,26 @@ export async function PriveGlissantTable() {
     );
   }
 
+  function DuoTableRow({ label, values, bold }: { label: string; values: DuoPeriodValues; bold?: boolean }) {
+    return (
+      <tr className={`border-b hover:bg-muted/20 ${bold ? "font-semibold bg-muted/50" : ""}`}>
+        <td className={`${tdLabel} ${bold ? "font-semibold" : ""}`}>{label}</td>
+        {values.map((v, i) => (
+          <Fragment key={i}>
+            <td className={`${tdClass} border-l`}>
+              {v.userShare !== 0 && <div>{fmt(v.userShare)}</div>}
+              {v.total !== 0 && <div className="text-muted-foreground text-xs">({fmt(v.total)})</div>}
+            </td>
+            <td className={tdClass}>
+              {v.avgShare !== 0 && <div>{fmt(v.avgShare)}</div>}
+              {v.avgTotal !== 0 && <div className="text-muted-foreground text-xs">({fmt(v.avgTotal)})</div>}
+            </td>
+          </Fragment>
+        ))}
+      </tr>
+    );
+  }
+
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="text-sm w-full">
@@ -162,12 +290,20 @@ export async function PriveGlissantTable() {
           {incomeCats.map((c) => (
             <TableRow key={c.category_id} label={c.category} values={catValues(c.category_id)} />
           ))}
-          <TableRow label="Total revenus" values={groupValues(incomeCatIds)} bold />
+          <TableRow label="Total revenus privés" values={groupValues(incomeCatIds)} bold />
+          {duoIncomeCatIds.map((id) => (
+            <DuoTableRow key={id} label={duoCatNameMap.get(id) ?? id} values={duoCatValues(id)} />
+          ))}
+          <DuoTableRow label="Total revenus duo" values={duoValues(12)} bold />
 
           {expenseCats.map((c) => (
             <TableRow key={c.category_id} label={c.category} values={catValues(c.category_id)} />
           ))}
-          <TableRow label="Total dépenses" values={groupValues(expenseCatIds, true)} bold />
+          <TableRow label="Total dépenses privées" values={groupValues(expenseCatIds, true)} bold />
+          {duoExpenseCatIds.map((id) => (
+            <DuoTableRow key={id} label={duoCatNameMap.get(id) ?? id} values={duoCatValues(id, true)} />
+          ))}
+          <DuoTableRow label="Total dépenses duo" values={duoValues(22, true)} bold />
 
           <TableRow label="Balance" values={balanceValues()} bold colorSign />
         </tbody>
