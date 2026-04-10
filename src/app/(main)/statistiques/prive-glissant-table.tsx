@@ -84,8 +84,7 @@ export async function PriveGlissantTable() {
           SELECT account_id FROM bf_account WHERE type IN (2, 3)
         )
         OR (
-          r.user_id    = ${userId}
-          AND r.category_id IN (
+          r.category_id IN (
             SELECT category_id FROM bf_category WHERE link_type = 'DUO'
           )
           AND r.account_id NOT IN (
