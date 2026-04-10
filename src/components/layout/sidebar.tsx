@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Settings, LayoutDashboard, Scale, BarChart2 } from "lucide-react";
+import { LogOut, Settings, LayoutDashboard, Scale, BarChart2, Info } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { AccountNav } from "./account-nav";
 import { Separator } from "@/components/ui/separator";
@@ -144,7 +144,12 @@ export async function Sidebar({ className }: Props) {
     <aside className={className}>
       <div className="flex h-full flex-col">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold tracking-tight">GeSFi</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight">GeSFi</h1>
+            <Link href="/about" className="text-muted-foreground hover:text-foreground">
+              <Info size={14} />
+            </Link>
+          </div>
           <p className="text-xs text-muted-foreground">{session?.user?.name}</p>
         </div>
 
