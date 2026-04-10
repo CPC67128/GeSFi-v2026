@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { getAccountsForUser } from "@/lib/accounts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PlacementPerf } from "../statistiques/placement-perf";
 
 export default async function PatrimoinePage() {
   const session = await auth();
@@ -250,6 +253,18 @@ export default async function PatrimoinePage() {
             <SectionHeading label="Comptes partagés" total={sum(comptesPartages)} />
             <SimpleAccountList items={comptesPartages} />
           </div>
+        </div>
+      )}
+
+      {/* Placement performance charts */}
+      {placementIds.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <div className="border-b pb-2">
+            <h2 className="text-lg font-bold">Performance placements</h2>
+          </div>
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <PlacementPerf />
+          </Suspense>
         </div>
       )}
     </div>

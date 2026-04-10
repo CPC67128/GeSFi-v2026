@@ -3,6 +3,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatSelector, type StatOption } from "./stat-selector";
 import { PriveAnneeTable } from "./prive-annee-table";
 import { PriveGlissantTable } from "./prive-glissant-table";
+import { PriveMultiAnneeTable } from "./prive-multi-annee-table";
+import { DuoMensuelTable } from "./duo-mensuel-table";
+import { DuoMensuelTransposeTable } from "./duo-mensuel-transpose-table";
+import { PlacementPerf } from "./placement-perf";
 
 type Props = { searchParams: Promise<{ stat?: string }> };
 
@@ -11,8 +15,12 @@ const CURRENT_YEAR = new Date().getFullYear();
 const PRIVE_YEARS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2, CURRENT_YEAR - 3, CURRENT_YEAR - 4, CURRENT_YEAR - 5];
 
 const STAT_OPTIONS: StatOption[] = [
-  { value: "prive-glissant", label: "Privé, 3/6/12 mois glissants" },
+  { value: "prive-glissant", label: "Global, 3/6/12 mois glissants" },
+  { value: "prive-multi-annee", label: "Privé, 5 dernières années" },
   ...PRIVE_YEARS.map((y) => ({ value: `prive-annee-${y}`, label: `Privé, année ${y}` })),
+  { value: "duo-mensuel", label: "Duo, 24 mois" },
+  { value: "duo-mensuel-transpose", label: "Duo, dépenses 24 mois" },
+  { value: "placement-perf", label: "Placements, performance" },
 ];
 
 async function StatTable({ stat }: { stat: string }) {
@@ -23,6 +31,14 @@ async function StatTable({ stat }: { stat: string }) {
   switch (stat) {
     case "prive-glissant":
       return <PriveGlissantTable />;
+    case "prive-multi-annee":
+      return <PriveMultiAnneeTable />;
+    case "duo-mensuel":
+      return <DuoMensuelTable />;
+    case "duo-mensuel-transpose":
+      return <DuoMensuelTransposeTable />;
+    case "placement-perf":
+      return <PlacementPerf />;
     default:
       return (
         <p className="text-sm text-muted-foreground text-center py-12">
