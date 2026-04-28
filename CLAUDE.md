@@ -59,11 +59,26 @@ Placement Revenu creates type 40 on the placement (`income` = amount, `amount` =
 | 3 | Compte duo (shared) |
 | 10 | Placement (investment) — tabular view, valorisation-based header |
 
+## Charts
+- `recharts` is installed. Use `"use client"` components for all chart rendering.
+- Pass serialized data from server components as props — never import Prisma into client chart components.
+- For placement rendement charts: Y axis clamped to ±100% by clamping data values before passing to recharts (`Math.min/Math.max`), not via `allowDataOverflow` (not valid on `<Line>`).
+
+## Client-side persistence
+- User UI preferences (e.g. checkbox states) that don't need DB storage use `localStorage`.
+- Key prefix: `gesfi:` (e.g. `gesfi:confirmed` for the confirmed checkbox in the new-transaction form).
+- Always initialize via `useEffect` to avoid SSR mismatch.
+
 ## Placement view specifics
 - `src/components/layout/placement-table.tsx` renders the tabular view for `account.type === 10`.
 - Cumulative columns (Versement, Versement effectif, Rachat, Revenu) use SQL window functions — no `CALC_` fields.
 - Rendement is computed in JS via a forward pass: tracks last valorisation snapshot + `Σ amount_invested − Σ withdrawal` since that snapshot, then `(estimated + Σ income + Σ withdrawal) / Σ versement − 1`.
 - Sidebar shows the latest `value` from `record_type = 30` for placement accounts (live query, not `CALC_balance`).
+
+## About page (/about)
+- Server component at `src/app/(main)/about/page.tsx`.
+- Shows: git commit/branch/date/message (via `execSync`), Node.js version, NODE_ENV, DB host/port/name/user (from env vars), DB version (live query), session user/role, server time.
+- Linked from sidebar via a small `Info` icon next to the GeSFi title.
 
 ## Auth
 - Credentials provider with MD5 password hashing (`createHash("md5")`).
