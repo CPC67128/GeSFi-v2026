@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createExpense } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,17 @@ export function NewExpenseForm({ accountId, categories, initialMode = "expense",
   const [error, formAction, pending] = useActionState(action, undefined);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [formulas, setFormulas] = useState<Record<string, string>>({});
+  const [confirmed, setConfirmed] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("gesfi:confirmed");
+    if (saved !== null) setConfirmed(saved === "true");
+  }, []);
+
+  function handleConfirmed(checked: boolean) {
+    setConfirmed(checked);
+    localStorage.setItem("gesfi:confirmed", String(checked));
+  }
 
   const today = new Date().toISOString().split("T")[0];
   const visible = categories.filter((c) => c.type === CATEGORY_TYPE[mode]);
@@ -132,7 +143,8 @@ export function NewExpenseForm({ accountId, categories, initialMode = "expense",
           <DesignationInput name="designation" placeholder={t("designationPlaceholder")} required />
         </div>
         <div className="flex items-center gap-2 sm:col-span-2">
-          <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4" defaultChecked />
+          <input id="confirmed" name="confirmed" type="checkbox" className="h-4 w-4"
+            checked={confirmed} onChange={(e) => handleConfirmed(e.target.checked)} />
           <Label htmlFor="confirmed">{t("confirmedLabel")}</Label>
         </div>
       </div>
