@@ -18,9 +18,11 @@ type Props = {
 async function TransactionList({
   targetUserId,
   query,
+  sessionUserId,
 }: {
   targetUserId: string;
   query: string;
+  sessionUserId: string;
 }) {
   type RawRecord = {
     record_id: string;
@@ -32,6 +34,7 @@ async function TransactionList({
     category_id: string;
     confirmed: number;
     user_id: string;
+    charge: number;
   };
 
   const now = new Date();
@@ -42,7 +45,8 @@ async function TransactionList({
            CAST(record_type AS UNSIGNED) AS record_type,
            amount, category_id,
            CAST(confirmed AS UNSIGNED) AS confirmed,
-           user_id
+           user_id,
+           CAST(charge AS UNSIGNED) AS charge
     FROM bf_record
     WHERE account_id = ''
       AND user_id    = ${targetUserId}
@@ -100,10 +104,15 @@ async function TransactionList({
       confirmed: Number(first.confirmed) !== 0,
       userName: userMap.get(first.user_id) ?? "",
       total,
-      lines: recs.map((r) => ({
-        category: categoryMap.get(r.category_id) ?? "",
-        amount: Number(r.amount ?? 0),
-      })),
+      lines: recs.map((r) => {
+        const charge = Number(r.charge);
+        const userCharge = r.user_id === sessionUserId ? charge : 100 - charge;
+        return {
+          category: categoryMap.get(r.category_id) ?? "",
+          amount: Number(r.amount ?? 0),
+          userCharge,
+        };
+      }),
     };
   });
 
@@ -151,7 +160,8 @@ async function TransactionList({
 export default async function UnknownAccountPage({ params, searchParams }: Props) {
   const { userId: targetUserId } = await params;
   const { q: query = "" } = await searchParams;
-  await auth();
+  const session = await auth();
+  const sessionUserId = session?.user?.id ?? "";
   const t = await getTranslations("AccountPage");
 
   const targetUser = await prisma.bf_user.findUnique({
@@ -208,7 +218,7 @@ export default async function UnknownAccountPage({ params, searchParams }: Props
 
       {/* Transaction list */}
       <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-        <TransactionList targetUserId={targetUserId} query={query} />
+        <TransactionList targetUserId={targetUserId} query={query} sessionUserId={sessionUserId} />
       </Suspense>
     </div>
   );

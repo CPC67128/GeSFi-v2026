@@ -1,7 +1,7 @@
 import { ConfirmButton } from "./confirm-button";
 import { DeleteButton } from "./delete-button";
 
-export type TransactionLine = { category: string; amount: number };
+export type TransactionLine = { category: string; amount: number; userCharge?: number };
 
 export type Transaction = {
   record_group_id: string;
@@ -85,7 +85,12 @@ export function TransactionTile({
             .filter((l) => l.category)
             .map((line, i) => (
               <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="truncate">{line.category}</span>
+                <span className="truncate">
+                  {line.category}
+                  {line.userCharge !== undefined && (
+                    <span className="ml-1 opacity-60">({line.userCharge}%/{100 - line.userCharge}%)</span>
+                  )}
+                </span>
                 <span className="shrink-0 tabular-nums ml-2">
                   {line.amount.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
                 </span>

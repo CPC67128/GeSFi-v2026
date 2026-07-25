@@ -22,11 +22,13 @@ async function TransactionList({
   query,
   unconfirmedOnly,
   showConfirmation,
+  sessionUserId,
 }: {
   accountId: string;
   query: string;
   unconfirmedOnly: boolean;
   showConfirmation: boolean;
+  sessionUserId: string;
 }) {
   // CAST(record_type AS UNSIGNED) bypasses the mariadb driver's TINYINT(1)→boolean coercion
   type RawRecord = {
@@ -39,6 +41,7 @@ async function TransactionList({
     category_id: string;
     confirmed: number;
     user_id: string;
+    charge: number;
   };
 
   // Without a search query: show current month + last 4 full months.
@@ -51,7 +54,8 @@ async function TransactionList({
            CAST(record_type AS UNSIGNED) AS record_type,
            amount, category_id,
            CAST(confirmed AS UNSIGNED) AS confirmed,
-           user_id
+           user_id,
+           CAST(charge AS UNSIGNED) AS charge
     FROM bf_record
     WHERE account_id = ${accountId}
       AND marked_as_deleted = 0
@@ -112,10 +116,15 @@ async function TransactionList({
       confirmed: Number(first.confirmed) !== 0,
       userName: userMap.get(first.user_id) ?? "",
       total,
-      lines: recs.map((r) => ({
-        category: categoryMap.get(r.category_id) ?? "",
-        amount: Number(r.amount ?? 0),
-      })),
+      lines: recs.map((r) => {
+        const charge = Number(r.charge);
+        const userCharge = r.user_id === sessionUserId ? charge : 100 - charge;
+        return {
+          category: categoryMap.get(r.category_id) ?? "",
+          amount: Number(r.amount ?? 0),
+          userCharge,
+        };
+      }),
     };
   });
 
@@ -157,7 +166,8 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const { accountId } = await params;
   const { q: query = "", unconfirmed } = await searchParams;
   const unconfirmedOnly = unconfirmed === "1";
-  await auth();
+  const session = await auth();
+  const sessionUserId = session?.user?.id ?? "";
   const t = await getTranslations("AccountPage");
 
   type BalanceRow = { balance: string; balance_confirmed: string };
@@ -319,7 +329,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
             </div>
           }
         >
-          <TransactionList accountId={accountId} query={query} unconfirmedOnly={unconfirmedOnly} showConfirmation={showConfirmation} />
+          <TransactionList accountId={accountId} query={query} unconfirmedOnly={unconfirmedOnly} showConfirmation={showConfirmation} sessionUserId={sessionUserId} />
         </Suspense>
       )}
     </div>
