@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileHeader } from "@/components/layout/mobile-header";
+import { ScrollToTopButton } from "@/components/layout/scroll-to-top";
 
 export default function MainLayout({
   children,
@@ -15,7 +16,10 @@ export default function MainLayout({
       <MobileHeader sidebar={<Sidebar className="h-full border-r flex flex-col" />} />
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto">
+        {children}
+        <ScrollToTopButton />
+      </main>
     </div>
   );
 }
