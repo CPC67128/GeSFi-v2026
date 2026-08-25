@@ -165,7 +165,7 @@ export function NewExpenseForm({ accountId, categories, initialMode = "expense",
               {groupLabel[linkType] ?? linkType}
             </h3>
 
-            <div className="grid grid-cols-[1fr_130px_110px_80px] gap-2 px-1">
+            <div className="hidden sm:grid grid-cols-[1fr_130px_110px_80px] gap-2 px-1">
               <span className="text-xs text-muted-foreground">{t("colCategory")}</span>
               <span className="text-xs text-muted-foreground text-right">{t("colFormula")}</span>
               <span className="text-xs text-muted-foreground text-right">{t("colAmount")}</span>
@@ -173,34 +173,40 @@ export function NewExpenseForm({ accountId, categories, initialMode = "expense",
             </div>
 
             {cats.map((cat) => (
-              <div key={cat.category_id} className="grid grid-cols-[1fr_130px_110px_80px] items-center gap-2">
-                <span className="text-sm truncate">{cat.category}</span>
-                <Input
-                  type="text"
-                  placeholder="0+0  or  100--"
-                  className="text-right font-mono"
-                  value={formulas[cat.category_id] ?? ""}
-                  onChange={(e) => handleFormula(cat.category_id, e.target.value)}
-                />
-                <Input
-                  name={`amount_${cat.category_id}`}
-                  type="number"
-                  step="0.01"
-                  readOnly
-                  value={amounts[cat.category_id] ?? ""}
-                  placeholder="0.00"
-                  className="text-right bg-muted cursor-not-allowed"
-                  onChange={() => {}}
-                />
-                <Input
-                  name={`charge_${cat.category_id}`}
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  defaultValue={cat.link_type === "DUO" ? 50 : 100}
-                  className="text-right"
-                />
+              <div
+                key={cat.category_id}
+                className="flex flex-col gap-1 sm:grid sm:grid-cols-[1fr_130px_110px_80px] sm:items-center sm:gap-2"
+              >
+                <span className="text-sm">{cat.category}</span>
+                <div className="grid grid-cols-3 gap-2 sm:contents">
+                  <Input
+                    type="text"
+                    placeholder="0+0  or  100--"
+                    className="text-right font-mono"
+                    value={formulas[cat.category_id] ?? ""}
+                    onChange={(e) => handleFormula(cat.category_id, e.target.value)}
+                  />
+                  <Input
+                    name={`amount_${cat.category_id}`}
+                    type="number"
+                    step="0.01"
+                    readOnly
+                    value={amounts[cat.category_id] ?? ""}
+                    placeholder="0.00"
+                    className="text-right bg-muted cursor-not-allowed"
+                    onChange={() => {}}
+                  />
+                  <Input
+                    name={`charge_${cat.category_id}`}
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    defaultValue={cat.link_type === "DUO" ? 50 : 100}
+                    placeholder="%"
+                    className="text-right"
+                  />
+                </div>
               </div>
             ))}
           </div>

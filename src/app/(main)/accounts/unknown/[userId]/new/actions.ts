@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
 export async function createUnknownExpense(
@@ -58,5 +59,6 @@ export async function createUnknownExpense(
     })),
   });
 
+  revalidatePath("/", "layout");
   redirect(`/accounts/unknown/${targetUserId}`);
 }

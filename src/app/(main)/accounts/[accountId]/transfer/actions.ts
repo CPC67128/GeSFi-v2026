@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
 export async function createTransfer(
@@ -96,5 +97,6 @@ export async function createTransfer(
     ],
   });
 
+  revalidatePath("/", "layout");
   redirect(`/accounts/${accountId}`);
 }
