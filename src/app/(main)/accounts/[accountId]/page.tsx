@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { getTranslations } from "next-intl/server";
 import { SearchBox } from "@/components/layout/search-box";
 import { UnconfirmedFilter } from "@/components/layout/unconfirmed-filter";
+import { AccountActionsMenu } from "@/components/layout/account-actions-menu";
 import { TransactionTile } from "@/components/layout/transaction-tile";
 import { PlacementTable } from "@/components/layout/placement-table";
 import { Suspense } from "react";
@@ -312,6 +313,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         )}
         <SearchBox />
         {!isPlacement && <UnconfirmedFilter />}
+        {!isPlacement && <AccountActionsMenu accountId={accountId} />}
       </div>
 
       {/* Transactions */}
